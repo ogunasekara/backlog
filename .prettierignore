@@ -1,0 +1,5 @@
+dist
+android
+pnpm-lock.yaml
+supabase/.temp
+supabase/.branches
