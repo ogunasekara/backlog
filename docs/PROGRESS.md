@@ -22,20 +22,20 @@ _Last updated: 2026-10-08_
 
 ### Tasks
 
-| Task                                           | Status | Notes                                                                                                                                     |
-| ---------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Repo; Vite + React + TS + Tailwind + shadcn/ui | ✅     | Vite 8, React 19, TS 6, Tailwind 4, shadcn/ui (new-york, neutral). `git init` done, no commits yet                                        |
-| ESLint, Prettier, Vitest                       | ✅     | `eslint.config.js`, `.prettierrc.json` (with Tailwind class sorting), Vitest + Testing Library in jsdom                                   |
-| `supabase init` + migrations                   | ✅     | `supabase/migrations/20261008000000_initial_schema.sql`: enums, `media`, `entries`, `allowed_emails`, constraints, indexes, RLS           |
-| Auth: Google (web redirect)                    | 🟡     | Code done (`signInWithOAuth`). Needs Google OAuth client and Supabase provider config, see [setup.md](setup.md#3-google-oauth-web-client) |
-| Auth: email OTP                                | ✅     | 6-digit code, no links. Template in `supabase/templates/otp.html`. Verified locally through Mailpit                                       |
-| Allow-list hook                                | ✅     | `public.hook_before_user_created`, wired in `supabase/config.toml`. Hosted project needs it enabled in the dashboard                      |
-| Signed-in shell                                | ✅     | Bottom tab bar (mobile) and sidebar (md+); Library / Search / Settings routes; sign out in Settings                                       |
-| Light/dark by system setting                   | ✅     | `prefers-color-scheme` media query; no toggle                                                                                             |
-| Hosted Supabase project                        | 🟡     | Manual: create the project, `supabase link`, `supabase db push`, enable the hook, set the email templates                                 |
-| Cloudflare Pages deploy from `main`            | 🟡     | Manual: connect the repo in the Cloudflare dashboard. SPA `_redirects` already in place                                                   |
-| `ci.yml` (lint, typecheck, unit tests)         | ✅     | Also runs format check, build, and RLS tests against local Supabase. Not yet run on GitHub (repo not pushed)                              |
-| RLS tests against local Supabase               | ✅     | `supabase/tests/rls.test.ts`: 25 tests passing locally                                                                                    |
+| Task                                           | Status | Notes                                                                                                                                                   |
+| ---------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo; Vite + React + TS + Tailwind + shadcn/ui | ✅     | Vite 8, React 19, TS 6, Tailwind 4, shadcn/ui (new-york, neutral). Pushed to private repo [ogunasekara/backlog](https://github.com/ogunasekara/backlog) |
+| ESLint, Prettier, Vitest                       | ✅     | `eslint.config.js`, `.prettierrc.json` (with Tailwind class sorting), Vitest + Testing Library in jsdom                                                 |
+| `supabase init` + migrations                   | ✅     | `supabase/migrations/20261008000000_initial_schema.sql`: enums, `media`, `entries`, `allowed_emails`, constraints, indexes, RLS                         |
+| Auth: Google (web redirect)                    | 🟡     | Code done (`signInWithOAuth`). Needs Google OAuth client and Supabase provider config, see [setup.md](setup.md#3-google-oauth-web-client)               |
+| Auth: email OTP                                | ✅     | 6-digit code, no links. Template in `supabase/templates/otp.html`. Verified locally through Mailpit                                                     |
+| Allow-list hook                                | ✅     | `public.hook_before_user_created`, wired in `supabase/config.toml`. Hosted project needs it enabled in the dashboard                                    |
+| Signed-in shell                                | ✅     | Bottom tab bar (mobile) and sidebar (md+); Library / Search / Settings routes; sign out in Settings                                                     |
+| Light/dark by system setting                   | ✅     | `prefers-color-scheme` media query; no toggle                                                                                                           |
+| Hosted Supabase project                        | 🟡     | Manual: create the project, `supabase link`, `supabase db push`, enable the hook, set the email templates                                               |
+| Cloudflare Pages deploy from `main`            | 🟡     | Manual: connect the repo in the Cloudflare dashboard. SPA `_redirects` already in place                                                                 |
+| `ci.yml` (lint, typecheck, unit tests)         | ✅     | Also runs format check, build, and RLS tests against local Supabase. Green on GitHub (first run on `main`, 2026-10-08)                                  |
+| RLS tests against local Supabase               | ✅     | `supabase/tests/rls.test.ts`: 25 tests passing locally                                                                                                  |
 
 ### Exit criteria
 
@@ -67,7 +67,7 @@ _Last updated: 2026-10-08_
 
 Follow [setup.md](setup.md#hosted-environments-manual):
 
-1. Create the GitHub repo and push.
+1. ~~Create the GitHub repo and push.~~ Done.
 2. Create the hosted Supabase project, link it, `db push`, enable the hook, add your email to `allowed_emails`, set the email templates.
 3. Create the Google OAuth web client and enable the provider in Supabase.
 4. Connect Cloudflare Pages.
