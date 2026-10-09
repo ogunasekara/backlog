@@ -9,18 +9,24 @@ import type { Media, SearchResult } from '@/lib/types'
 import { SearchPage } from './SearchPage'
 
 vi.mock('@/lib/api/search')
-vi.mock('@/lib/api/entries', async (importOriginal) => {
-  // DuplicateEntryError is a real class the code checks with `instanceof`.
-  const actual = await importOriginal<typeof entriesApi>()
-  return {
-    DuplicateEntryError: actual.DuplicateEntryError,
-    addEntry: vi.fn(),
-    createCustomMedia: vi.fn(),
-    listEntries: vi.fn(),
-    findEntryId: vi.fn(),
-    nextBacklogPosition: vi.fn(),
-  }
-})
+// The factory declares DuplicateEntryError rather than importing the real module,
+// which would pull in the Supabase client (and its env requirements) into the test.
+// The component and the test both see this same class, so `instanceof` still holds.
+vi.mock('@/lib/api/entries', () => ({
+  DuplicateEntryError: class DuplicateEntryError extends Error {
+    entryId: string | null
+    constructor(entryId: string | null) {
+      super('This is already in your library.')
+      this.name = 'DuplicateEntryError'
+      this.entryId = entryId
+    }
+  },
+  addEntry: vi.fn(),
+  createCustomMedia: vi.fn(),
+  listEntries: vi.fn(),
+  findEntryId: vi.fn(),
+  nextBacklogPosition: vi.fn(),
+}))
 
 const toasts = vi.hoisted(() => ({
   success: vi.fn(),
