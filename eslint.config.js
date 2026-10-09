@@ -7,7 +7,7 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-  globalIgnores(['dist', 'android', 'supabase/functions', 'supabase/.temp']),
+  globalIgnores(['dist', 'android', 'supabase/.temp']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

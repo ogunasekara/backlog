@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1942,
+    "cover": { "id": 89208, "image_id": "co1wyy" },
+    "first_release_date": 1289174400,
+    "name": "The Witcher 2: Assassins of Kings",
+    "platforms": [
+      { "id": 6, "name": "PC (Microsoft Windows)" },
+      { "id": 12, "name": "Xbox 360" },
+      { "id": 14, "name": "Mac" }
+    ],
+    "summary": "The Witcher 2: Assassins of Kings is a role-playing game with a mature, non-linear storyline."
+  }
+]

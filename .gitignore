@@ -34,3 +34,6 @@ supabase/.temp
 
 # Personal local seed data
 supabase/seed.local.sql
+
+# Local edge function secrets
+supabase/functions/.env

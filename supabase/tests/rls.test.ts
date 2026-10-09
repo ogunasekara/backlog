@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { generateKeyBetween } from 'fractional-indexing'
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest'
 
@@ -203,6 +204,113 @@ describe('backlog_position check constraint', () => {
       .update({ status: 'in_progress', backlog_position: null })
       .eq('id', entryA)
     expect(error).toBeNull()
+  })
+})
+
+describe('backlog ordering', () => {
+  it('orders fractional positions the same way the client library does', async () => {
+    // backlog_position is `collate "C"`, so Postgres must sort byte-wise, matching
+    // JavaScript string comparison. If the collation were wrong, the backlog order
+    // would silently diverge from what the UI computed.
+    const titles = Array.from({ length: 12 }, (_, i) => `Order ${run} ${i}`)
+    const media = await admin
+      .from('media')
+      .insert(
+        titles.map((title, i) => ({
+          type: 'game' as const,
+          source: 'igdb' as const,
+          external_id: `order-${run}-${i}`,
+          title,
+        })),
+      )
+      .select('id')
+    if (media.error) throw media.error
+
+    // Build positions the way the app does: alternately prepend and append.
+    const ordered: { id: string; position: string }[] = []
+    for (const [i, row] of media.data.entries()) {
+      const toTop = i % 2 === 1
+      const position = toTop
+        ? generateKeyBetween(null, ordered[0]?.position ?? null)
+        : generateKeyBetween(ordered[ordered.length - 1]?.position ?? null, null)
+      const entry = { id: row.id, position }
+      if (toTop) ordered.unshift(entry)
+      else ordered.push(entry)
+    }
+
+    const inserted = await userA.client.from('entries').insert(
+      ordered.map(({ id, position }) => ({
+        media_id: id,
+        status: 'backlog' as const,
+        backlog_position: position,
+      })),
+    )
+    expect(inserted.error).toBeNull()
+
+    const read = await userA.client
+      .from('entries')
+      .select('media_id, backlog_position')
+      .eq('status', 'backlog')
+      .order('backlog_position', { ascending: true })
+    expect(read.error).toBeNull()
+
+    const expected = ordered.map((row) => row.id)
+    const actual = (read.data ?? [])
+      .filter((row) => expected.includes(row.media_id))
+      .map((row) => row.media_id)
+    expect(actual).toEqual(expected)
+
+    await userA.client.from('entries').delete().in('media_id', expected)
+    await admin.from('media').delete().in('id', expected)
+  })
+})
+
+describe('catalog upsert (service role)', () => {
+  it('updates the existing row instead of duplicating it', async () => {
+    const row = {
+      type: 'movie' as const,
+      source: 'tmdb' as const,
+      external_id: `upsert-${run}`,
+      title: 'First Title',
+    }
+    const first = await admin
+      .from('media')
+      .upsert(row, { onConflict: 'source,external_id' })
+      .select()
+      .single()
+    expect(first.error).toBeNull()
+
+    const second = await admin
+      .from('media')
+      .upsert({ ...row, title: 'Updated Title', year: 1999 }, { onConflict: 'source,external_id' })
+      .select()
+      .single()
+    expect(second.error).toBeNull()
+    expect(second.data?.id).toBe(first.data?.id)
+    expect(second.data?.title).toBe('Updated Title')
+
+    const all = await admin.from('media').select('id').eq('external_id', row.external_id)
+    expect(all.data).toHaveLength(1)
+    await admin.from('media').delete().eq('external_id', row.external_id)
+  })
+
+  it('still allows many custom rows, which all have a null external id', async () => {
+    const custom = await userA.client
+      .from('media')
+      .insert([
+        { type: 'book', source: 'custom', title: `Custom One ${run}`, created_by: userA.id },
+        { type: 'book', source: 'custom', title: `Custom Two ${run}`, created_by: userA.id },
+      ])
+      .select('id')
+    expect(custom.error).toBeNull()
+    expect(custom.data).toHaveLength(2)
+  })
+
+  it('rejects a catalog row with no external id', async () => {
+    const { error } = await admin
+      .from('media')
+      .insert({ type: 'movie', source: 'tmdb', external_id: null, title: 'No external id' })
+    expect(error?.code).toBe('23514')
   })
 })
 

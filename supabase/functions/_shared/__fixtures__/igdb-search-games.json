@@ -1,0 +1,19 @@
+[
+  {
+    "id": 1942,
+    "cover": { "id": 89208, "image_id": "co1wyy" },
+    "first_release_date": 1289174400,
+    "name": "The Witcher 2: Assassins of Kings",
+    "summary": "The Witcher 2: Assassins of Kings is a role-playing game with a mature, non-linear storyline."
+  },
+  {
+    "id": 1943,
+    "first_release_date": 0,
+    "name": "A Game With No Cover"
+  },
+  {
+    "id": 0,
+    "name": "",
+    "summary": "A malformed row that should be dropped."
+  }
+]

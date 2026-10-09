@@ -1,0 +1,32 @@
+{
+  "kind": "books#volumes",
+  "totalItems": 3,
+  "items": [
+    {
+      "kind": "books#volume",
+      "id": "yl4dILkcqm4C",
+      "volumeInfo": {
+        "title": "The Hobbit",
+        "subtitle": "Or There and Back Again",
+        "authors": ["J. R. R. Tolkien"],
+        "publishedDate": "2012-02-15",
+        "description": "Bilbo Baggins is a hobbit who enjoys a comfortable, unambitious life, rarely travelling further than the pantry of his hobbit-hole.",
+        "pageCount": 320,
+        "imageLinks": {
+          "smallThumbnail": "http://books.google.com/books/content?id=yl4dILkcqm4C&printsec=frontcover&img=1&zoom=5",
+          "thumbnail": "http://books.google.com/books/content?id=yl4dILkcqm4C&printsec=frontcover&img=1&zoom=1"
+        }
+      }
+    },
+    {
+      "kind": "books#volume",
+      "id": "pD6arNyKyi8C",
+      "volumeInfo": {
+        "title": "The History of the Hobbit",
+        "publishedDate": "2011",
+        "description": "A study of the writing of The Hobbit."
+      }
+    },
+    { "kind": "books#volume", "volumeInfo": { "title": "Missing an id" } }
+  ]
+}
