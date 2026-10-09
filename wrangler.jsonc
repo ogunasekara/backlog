@@ -1,0 +1,11 @@
+// Cloudflare Workers static-assets deploy (Workers Builds runs `pnpm build` then `npx wrangler deploy`).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "backlog",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Serve index.html for unknown paths so client-side routes work on refresh.
+    "not_found_handling": "single-page-application",
+  },
+}

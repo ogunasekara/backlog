@@ -50,7 +50,7 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on PRs.
 4. **Table editor → allowed_emails**: insert your email (lowercase).
 5. **Auth → Providers → Email**: enabled; leave "Confirm email" on or off (OTP works either way).
 6. **Auth → Email Templates**: set both _Magic Link_ and _Confirm signup_ to show the code instead of a link. Use the content of `supabase/templates/otp.html` (it uses `{{ .Token }}`).
-7. **Auth → URL Configuration**: Site URL = your Cloudflare Pages URL (e.g. `https://backlog.pages.dev`). Add `http://localhost:5173` to Redirect URLs.
+7. **Auth → URL Configuration**: Site URL = your Cloudflare URL (e.g. `https://backlog.<your-subdomain>.workers.dev`). Add `http://localhost:5173` to Redirect URLs.
 8. **Auth → Providers → Google**: enable and paste the web client ID and secret from step 3 below.
 
 > Free-tier email sending is rate limited (a few emails per hour). Configure custom SMTP under **Auth → SMTP** if that becomes a problem.
@@ -64,15 +64,17 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on PRs.
 
 The Android client (with signing SHA-1) comes in Phase 3.
 
-### 4. Cloudflare Pages
+### 4. Cloudflare (Workers static assets)
 
-1. Cloudflare dashboard → Workers & Pages → Create → Pages → _Connect to Git_ → pick the repo.
-2. Framework preset: none. Build command: `pnpm build`. Output directory: `dist`. Production branch: `main`.
-3. Environment variables (Production and Preview):
+The dashboard's Git flow deploys a Worker that serves `dist/`. `wrangler.jsonc` configures it, including the single-page-app fallback. Don't add a `_redirects` SPA rule; Workers reject it as an infinite loop.
+
+1. Cloudflare dashboard → Workers & Pages → Create → _Import a repository_ → pick the repo.
+2. Build command: `pnpm build`. Deploy command: `npx wrangler deploy` (the default). Production branch: `main`.
+3. **Settings → Build → Variables and secrets** (build-time, not runtime: Vite inlines them during the build):
    - `VITE_SUPABASE_URL` = `https://<project-ref>.supabase.co`
    - `VITE_SUPABASE_ANON_KEY` = the project's anon (or publishable) key
    - `NODE_VERSION` = `22`
-4. `public/_redirects` already sends all routes to `index.html` for client-side routing.
+4. The site is served at `https://backlog.<your-subdomain>.workers.dev`. Use that URL for the Supabase Site URL and the Google OAuth origins.
 
 ### Phase 1 exit check
 
