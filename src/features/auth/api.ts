@@ -8,17 +8,15 @@ export async function signInWithGoogle() {
   if (error) throw error
 }
 
-/** Sends a 6-digit code. New users are created only if the email is allow-listed (auth hook). */
-export async function sendEmailCode(email: string) {
+/**
+ * Emails a sign-in link. New users are created only if the email is allow-listed (auth hook).
+ * The link must be opened in the same browser (PKCE). A 6-digit code replaces it in Phase 3.
+ */
+export async function sendEmailLink(email: string) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true },
+    options: { shouldCreateUser: true, emailRedirectTo: window.location.origin },
   })
-  if (error) throw error
-}
-
-export async function verifyEmailCode(email: string, token: string) {
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
   if (error) throw error
 }
 

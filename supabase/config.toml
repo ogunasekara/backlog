@@ -69,7 +69,7 @@ schema_paths = []
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+sql_paths = ["./seed.sql", "./seed.local.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -244,14 +244,16 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Email OTP: the templates show the 6-digit code instead of a link (no deep links).
-[auth.email.template.magic_link]
-subject = "Your Backlog sign-in code"
-content_path = "./supabase/templates/otp.html"
-
-[auth.email.template.confirmation]
-subject = "Your Backlog sign-in code"
-content_path = "./supabase/templates/otp.html"
+# Email sign-in uses Supabase's default link templates, matching the hosted project
+# (custom templates there need custom SMTP). Phase 3 switches to the 6-digit code template
+# in ./supabase/templates/otp.html.
+# [auth.email.template.magic_link]
+# subject = "Your Backlog sign-in code"
+# content_path = "./supabase/templates/otp.html"
+#
+# [auth.email.template.confirmation]
+# subject = "Your Backlog sign-in code"
+# content_path = "./supabase/templates/otp.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

@@ -210,7 +210,7 @@ Each phase ends with something that works end to end. Estimates assume part-time
 
 - Create the repo; Vite + React + TS + Tailwind + shadcn/ui; ESLint, Prettier, Vitest.
 - `supabase init`; write the migrations for `media`, `entries`, `allowed_emails`, enums, constraints, RLS.
-- Auth: Google (web redirect) and email OTP; allow-list hook; a basic signed-in shell with the mobile tab bar and desktop sidebar; light/dark by system setting.
+- Auth: Google (web redirect) and email sign-in link (Supabase default template); allow-list hook; a basic signed-in shell with the mobile tab bar and desktop sidebar; light/dark by system setting.
 - Hosted Supabase project; Cloudflare Pages deploy from `main`; `ci.yml` (lint, typecheck, unit tests).
 - RLS tests against local Supabase.
 
@@ -232,6 +232,7 @@ Done early on purpose, to prove the risky native parts before features pile up.
 
 - App name is settled (**Backlog**). Decide the **Android package ID** now, in the form `com.<yourname>.backlog`; it is effectively permanent once installed.
 - Add Capacitor; configure the Android project; native Google sign-in plugin exchanging an ID token via `signInWithIdToken`; set up the Google Cloud OAuth clients (web and Android, with the signing SHA-1).
+- Switch email sign-in from link to 6-digit code (links would open the website, not the app): set up custom SMTP on the hosted project (e.g. Gmail with an app password), apply `supabase/templates/otp.html` to the Magic Link and Confirm signup templates, and add the code-entry step back to the sign-in screen.
 - Generate the signing keystore; **back it up offline** (losing it means uninstalling and reinstalling).
 - `android-release.yml`: on a version tag, build, sign, and attach the APK to a GitHub Release.
 - Sideload onto your phone; verify sign-in, search, and add.

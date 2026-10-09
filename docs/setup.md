@@ -13,8 +13,8 @@ cp .env.example .env.local    # paste ANON_KEY from the db:start output
 pnpm dev                      # http://localhost:5173
 ```
 
-- Allow-listed emails for local dev live in `supabase/seed.sql` (`dev@example.com` by default). Add yours and run `pnpm db:reset`.
-- Email codes are not really sent locally. Open Mailpit at http://127.0.0.1:54324 to read them.
+- Local allow-list: `supabase/seed.sql` has `dev@example.com`. To add your own emails without committing them, copy `supabase/seed.local.example.sql` to `supabase/seed.local.sql` (gitignored) and run `pnpm db:reset`.
+- Sign-in emails are not really sent locally. Open Mailpit at http://127.0.0.1:54324 and click the link there.
 - Local Google sign-in is optional. To enable it, copy `supabase/.env.example` to `supabase/.env`, fill in a Google OAuth web client, and add `http://127.0.0.1:54321/auth/v1/callback` as an authorized redirect URI on that client.
 
 ### Checks
@@ -48,8 +48,8 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on PRs.
    ```
 3. **Auth → Hooks**: add a _Before User Created_ hook → Postgres function → `public.hook_before_user_created`.
 4. **Table editor → allowed_emails**: insert your email (lowercase).
-5. **Auth → Providers → Email**: enabled; leave "Confirm email" on or off (OTP works either way).
-6. **Auth → Email Templates**: set both _Magic Link_ and _Confirm signup_ to show the code instead of a link. Use the content of `supabase/templates/otp.html` (it uses `{{ .Token }}`).
+5. **Auth → Providers → Email**: enabled; leave "Confirm email" on or off (sign-in links work either way).
+6. **Auth → Email Templates**: leave the defaults for now (editing them requires custom SMTP). Email sign-in uses the link. Switching to the 6-digit code template (`supabase/templates/otp.html`) is a Phase 3 task.
 7. **Auth → URL Configuration**: Site URL = your Cloudflare URL (e.g. `https://backlog.<your-subdomain>.workers.dev`). Add `http://localhost:5173` to Redirect URLs.
 8. **Auth → Providers → Google**: enable and paste the web client ID and secret from step 3 below.
 
@@ -78,6 +78,6 @@ The dashboard's Git flow deploys a Worker that serves `dist/`. `wrangler.jsonc` 
 
 ### Phase 1 exit check
 
-1. Open the deployed site, sign in with Google and with an email code using an allow-listed address.
+1. Open the deployed site, sign in with Google and with an email link using an allow-listed address.
 2. Try an email that isn't in `allowed_emails`: you should see "This email is not allowed to sign up for Backlog."
 3. CI is green on `main`, including the RLS job.

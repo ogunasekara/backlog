@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { sendEmailCode, signInWithGoogle, verifyEmailCode } from './api'
+import { sendEmailLink, signInWithGoogle } from './api'
 
 /** OAuth failures (including allow-list rejections) come back as URL params. */
 function readRedirectError(): string | null {
@@ -17,9 +17,8 @@ function message(err: unknown): string {
 }
 
 export function SignInPage() {
-  const [step, setStep] = useState<'email' | 'code'>('email')
+  const [sentTo, setSentTo] = useState<string | null>(null)
   const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(readRedirectError)
 
@@ -35,17 +34,13 @@ export function SignInPage() {
     }
   }
 
-  function onSendCode(e: FormEvent) {
+  function onSendLink(e: FormEvent) {
     e.preventDefault()
+    const address = email.trim().toLowerCase()
     run(async () => {
-      await sendEmailCode(email.trim().toLowerCase())
-      setStep('code')
+      await sendEmailLink(address)
+      setSentTo(address)
     })
-  }
-
-  function onVerify(e: FormEvent) {
-    e.preventDefault()
-    run(() => verifyEmailCode(email.trim().toLowerCase(), code.trim()))
   }
 
   return (
@@ -66,8 +61,8 @@ export function SignInPage() {
             <span className="h-px flex-1 bg-border" />
           </div>
 
-          {step === 'email' ? (
-            <form className="flex flex-col gap-3" onSubmit={onSendCode}>
+          {sentTo === null ? (
+            <form className="flex flex-col gap-3" onSubmit={onSendLink}>
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -78,37 +73,19 @@ export function SignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Button type="submit" disabled={busy}>
-                Email me a code
+                Email me a sign-in link
               </Button>
             </form>
           ) : (
-            <form className="flex flex-col gap-3" onSubmit={onVerify}>
-              <Label htmlFor="code">Enter the 6-digit code sent to {email}</Label>
-              <Input
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              />
-              <Button type="submit" disabled={busy}>
-                Sign in
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={() => {
-                  setStep('email')
-                  setCode('')
-                }}
-              >
+            <div className="flex flex-col gap-3">
+              <p role="status" className="text-sm">
+                Check <span className="font-medium">{sentTo}</span> for a sign-in link. Open it in
+                this browser to finish signing in.
+              </p>
+              <Button type="button" variant="ghost" onClick={() => setSentTo(null)}>
                 Use a different email
               </Button>
-            </form>
+            </div>
           )}
 
           {error && (

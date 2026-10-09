@@ -31,3 +31,6 @@ dist-ssr
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Personal local seed data
+supabase/seed.local.sql
