@@ -4,15 +4,66 @@ Tracks build status against [implementation-plan.md](implementation-plan.md). Up
 
 **Legend:** ✅ done · 🟡 done in repo, needs a manual step · ⬜ not started
 
-| Phase                            | Status                                          |
-| -------------------------------- | ----------------------------------------------- |
-| 1. Foundation                    | ✅                                              |
-| 2. Search and add                | 🟡 Code complete; needs your API keys to verify |
-| 3. Android shell                 | ⬜                                              |
-| 4. Library and tracking          | ⬜                                              |
-| 5. Backlog ordering              | ⬜                                              |
-| 6. TV progress                   | ⬜                                              |
-| 7. Offline read cache and polish | ⬜                                              |
+| Phase                            | Status                                    |
+| -------------------------------- | ----------------------------------------- |
+| 1. Foundation                    | ✅                                        |
+| 2. Search and add                | ✅                                        |
+| 3. Android shell                 | 🟡 Code complete; needs your manual setup |
+| 4. Library and tracking          | ⬜                                        |
+| 5. Backlog ordering              | ⬜                                        |
+| 6. TV progress                   | ⬜                                        |
+| 7. Offline read cache and polish | ⬜                                        |
+
+---
+
+## Phase 3: Android shell
+
+_Last updated: 2026-10-10_
+
+### Tasks
+
+| Task                                       | Status | Notes                                                                                                                              |
+| ------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Android package ID                         | ✅     | **`com.ogdev.backlog`**. Permanent once installed                                                                                  |
+| Capacitor + Android project                | ✅     | Capacitor 8; `android/` committed; `pnpm android:sync` / `android:open`                                                            |
+| Native Google sign-in                      | ✅     | `@capgo/capacitor-social-login` (Credential Manager) → ID token → `signInWithIdToken`, with a hashed nonce. Web keeps the redirect |
+| Google Cloud OAuth clients (web + Android) | 🟡     | Yours: create the Android client with the release SHA-1 ([setup.md step 7](setup.md#7-android-phase-3))                            |
+| Email sign-in: link → 6-digit code         | ✅     | Code-entry step on the sign-in screen; local templates in `config.toml`                                                            |
+| Custom SMTP + hosted code templates        | 🟡     | Yours: Gmail app password, then the two templates ([setup.md step 6](setup.md#6-email-sign-in-codes-phase-3))                      |
+| Signing keystore, backed up offline        | 🟡     | Yours to generate and back up ([setup.md step 7](setup.md#7-android-phase-3))                                                      |
+| `android-release.yml`                      | ✅     | Tag `vX.Y.Z` → signed APK on a GitHub Release. Manual run = dry run with the APK as an artifact                                    |
+| Sideload and verify sign-in, search, add   | ⬜     | Needs the steps above                                                                                                              |
+
+### Exit criteria
+
+- [ ] A tagged release produces an APK you install from GitHub and use to add an item.
+
+### Verified
+
+- Email code sign-in against local Supabase with the real templates: a new user gets the "Confirm signup" email and a returning user the "Magic Link" one, both with a 6-digit code; the right code gives a session, a wrong one is rejected, and a non-allow-listed email is still refused.
+- Sign-in screen component tests: send code, verify, wrong code, resend, change email, allow-list rejection, Google start, and a dismissed Google picker showing no error. 77 unit tests and 29 RLS tests pass.
+- `cap add android` and `cap sync` succeed and pick up the plugin.
+
+### Not verified
+
+- **No Android build has run yet.** This machine has no JDK or Android SDK, so the Gradle build (including the signing config and version properties) first runs in GitHub Actions. Do the dry run before tagging.
+- **Native Google sign-in is untested on a device.** It depends on the Android OAuth client matching the release keystore's SHA-1.
+- **Hosted email codes** depend on the SMTP and template setup in the dashboard.
+
+### Decisions and deviations
+
+- **`@capgo/capacitor-social-login` instead of `@codetrix-studio/capacitor-google-auth`.** The Codetrix plugin hasn't been released since 2024 and uses the deprecated Google Sign-In API. The Capgo fork is maintained, released alongside Capacitor 8, and uses Credential Manager. Only its Google provider is bundled.
+- **The plugin loads on demand**, so the web bundle doesn't carry it. A dismissed account picker is treated as a cancellation, not an error.
+- **Public build values are repository _variables_, not secrets**, matching Cloudflare's build variables. Only the keystore and its passwords are secrets.
+- **Version code comes from the tag**: `v1.2.3` → `10203`, so minor and patch must stay under 100. Dry runs use version code 1 and are not meant for installing.
+- **No Android build in `ci.yml`.** A Gradle build adds several minutes to every PR; the release workflow's dry run covers it when native code changes.
+
+### Your next steps for Phase 3
+
+1. Custom SMTP and the code templates on the hosted project ([setup.md step 6](setup.md#6-email-sign-in-codes-phase-3)), then deploy `main` and confirm email codes work on the site.
+2. Generate the keystore, **back it up offline**, and create the Android OAuth client ([setup.md step 7](setup.md#7-android-phase-3)).
+3. Add the GitHub variables and secrets, run the dry run, then tag `v0.3.0`.
+4. Install the APK and walk the [Phase 3 exit check](setup.md#phase-3-exit-check). Send me any errors (especially Google's `[28444]`) and I'll fix them.
 
 ---
 
@@ -24,7 +75,7 @@ _Last updated: 2026-10-08_
 
 | Task                                            | Status | Notes                                                                                            |
 | ----------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------ |
-| API accounts (TMDB, Twitch/IGDB, Google Books)  | ⬜     | Yours to create; steps in [setup.md](setup.md#4-metadata-api-keys-phase-2)                       |
+| API accounts (TMDB, Twitch/IGDB, Google Books)  | ✅     | Yours to create; steps in [setup.md](setup.md#4-metadata-api-keys-phase-2)                       |
 | Edge function `search`                          | ✅     | Scoped or `all`; fans out in parallel, per-source timeout, partial failures reported in `errors` |
 | Edge function `details`                         | ✅     | Fetches, normalizes, upserts `media` with the service role, returns the row                      |
 | Normalizers with fixture tests                  | ✅     | `supabase/functions/_shared/{tmdb,igdb,google-books}.ts` against saved fixtures                  |
@@ -37,7 +88,7 @@ _Last updated: 2026-10-08_
 
 ### Exit criteria
 
-- [ ] Add an item from each of the four sources. _Blocked on API keys._
+- [x] Add an item from each of the four sources. _Verified with real keys. Book search worked on 2026-10-09; on 2026-10-10 Google's search endpoint was returning 503 `backendFailed` (upstream outage, not our code)._
 - [x] Create a custom item. _Covered by component tests; not yet clicked through in a browser._
 
 ### Verified

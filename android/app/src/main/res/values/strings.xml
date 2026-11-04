@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Backlog</string>
+    <string name="title_activity_main">Backlog</string>
+    <string name="package_name">com.ogdev.backlog</string>
+    <string name="custom_url_scheme">com.ogdev.backlog</string>
+</resources>

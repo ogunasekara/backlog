@@ -14,7 +14,7 @@ pnpm dev                      # http://localhost:5173
 ```
 
 - Local allow-list: `supabase/seed.sql` has `dev@example.com`. To add your own emails without committing them, copy `supabase/seed.local.example.sql` to `supabase/seed.local.sql` (gitignored) and run `pnpm db:reset`.
-- Sign-in emails are not really sent locally. Open Mailpit at http://127.0.0.1:54324 and click the link there.
+- Sign-in emails are not really sent locally. Open Mailpit at http://127.0.0.1:54324 and copy the 6-digit code from there. The code template is set in `supabase/config.toml`; restart (`pnpm db:stop && pnpm db:start`) after changing it.
 - Edge functions (search/details) need API keys: copy `supabase/functions/.env.example` to `supabase/functions/.env`, fill it in, then run `pnpm functions:serve` in a second terminal. Without it, search returns "not configured" per source and the rest of the app still works.
 - Local Google sign-in is optional. To enable it, copy `supabase/.env.example` to `supabase/.env`, fill in a Google OAuth web client, and add `http://127.0.0.1:54321/auth/v1/callback` as an authorized redirect URI on that client.
 
@@ -49,8 +49,8 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on PRs.
    ```
 3. **Auth → Hooks**: add a _Before User Created_ hook → Postgres function → `public.hook_before_user_created`.
 4. **Table editor → allowed_emails**: insert your email (lowercase).
-5. **Auth → Providers → Email**: enabled; leave "Confirm email" on or off (sign-in links work either way).
-6. **Auth → Email Templates**: leave the defaults for now (editing them requires custom SMTP). Email sign-in uses the link. Switching to the 6-digit code template (`supabase/templates/otp.html`) is a Phase 3 task.
+5. **Auth → Providers → Email**: enabled; leave "Confirm email" on or off (codes work either way).
+6. **Auth → Email Templates**: switch to the 6-digit code template. Editing templates needs custom SMTP first; both are in [step 6](#6-email-sign-in-codes-phase-3).
 7. **Auth → URL Configuration**: Site URL = your Cloudflare URL (e.g. `https://backlog.<your-subdomain>.workers.dev`). Add `http://localhost:5173` to Redirect URLs.
 8. **Auth → Providers → Google**: enable and paste the web client ID and secret from step 3 below.
 
@@ -63,7 +63,7 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on PRs.
 3. Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
 4. Consent screen: External, Testing mode is fine; add your Google account as a test user.
 
-The Android client (with signing SHA-1) comes in Phase 3.
+The Android client (with signing SHA-1) is in [step 7](#7-android-phase-3).
 
 ### 4. Metadata API keys (Phase 2)
 
@@ -98,6 +98,63 @@ The dashboard's Git flow deploys a Worker that serves `dist/`. `wrangler.jsonc` 
    - `NODE_VERSION` = `22`
 4. The site is served at `https://backlog.<your-subdomain>.workers.dev`. Use that URL for the Supabase Site URL and the Google OAuth origins.
 
+### 6. Email sign-in codes (Phase 3)
+
+Email sign-in sends a 6-digit code rather than a link, because on Android a link would open the website instead of the app. Hosted Supabase only lets you edit email templates once custom SMTP is set up.
+
+1. **Gmail app password**: turn on 2-Step Verification for the Google account that will send the email, then create an app password at https://myaccount.google.com/apppasswords.
+2. **Supabase → Auth → Emails → SMTP Settings**: enable custom SMTP.
+   - Sender email: that Gmail address. Sender name: `Backlog`.
+   - Host `smtp.gmail.com`, port `587`, username: the Gmail address, password: the app password.
+   - Supabase warns that Gmail is "designed for sending personal rather than transactional email". That's expected and fine here: a handful of codes a day to allow-listed addresses is well within Gmail's limits. If you ever outgrow it, switch to a transactional provider such as Resend, which needs a domain you own.
+3. **Auth → Emails → Templates**: in both **Magic Link** and **Confirm signup**, set the subject to `Your Backlog sign-in code` and paste in the body of `supabase/templates/otp.html`. (A new user gets the Confirm signup email and a returning one gets Magic Link, so both need the code.)
+4. **Auth → Providers → Email**: check that **Email OTP Length** is `6`. The sign-in screen only accepts 6 digits.
+5. **Auth → Rate Limits**: with custom SMTP the email limit can go above the free default. A few per hour is plenty for personal use.
+
+### 7. Android (Phase 3)
+
+The package ID is **`com.ogdev.backlog`** (in `capacitor.config.ts` and `android/app/build.gradle`). It can't change once the app is installed.
+
+**Signing keystore.** You need `keytool`, which comes with any JDK (`sudo apt install openjdk-21-jdk-headless`, or the one bundled with Android Studio).
+
+```sh
+keytool -genkeypair -v -keystore backlog-release.jks -alias backlog \
+  -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=<your name>"
+```
+
+- The distinguished name (`-dname`) is just a label in the certificate: nothing checks it, but anyone with the APK can read it and it can never change. A name is enough; leave out your address.
+
+- Use the same password for the store and the key (PKCS12 keystores ignore a separate key password).
+- **Back up `backlog-release.jks` and its password offline** (a password manager plus a USB stick, say). If you lose it, future updates can't install over the existing app: you'd have to uninstall it, which wipes its local data. `*.jks` is gitignored; keep it outside the repo anyway.
+- Print the SHA-1 for the next step: `keytool -list -v -keystore backlog-release.jks -alias backlog`.
+
+**Google OAuth Android client.** Native sign-in uses Android's account picker (Credential Manager). It needs the existing **web** client plus a new **Android** client, both in the same Google Cloud project.
+
+1. Google Cloud Console → APIs & Services → Credentials → _Create OAuth client ID_ → **Android**.
+2. Package name `com.ogdev.backlog`; SHA-1 from the release keystore above.
+3. Nothing else changes in Supabase. The app requests an ID token for the **web** client ID, which the Google provider already accepts. Leave "Skip nonce checks" **off**.
+4. Changes can take a few minutes, occasionally hours, to reach devices. `[28444] Developer console is not set up correctly` means the package name, SHA-1, or client ID doesn't match.
+
+**GitHub configuration** (repo → Settings → Secrets and variables → Actions). Use **repository** variables and secrets, not environment ones: the workflow doesn't declare an `environment:`, so it can't see environment-scoped values.
+
+| Kind     | Name                        | Value                                             |
+| -------- | --------------------------- | ------------------------------------------------- |
+| Variable | `VITE_SUPABASE_URL`         | `https://<project-ref>.supabase.co`               |
+| Variable | `VITE_SUPABASE_ANON_KEY`    | the project's anon (or publishable) key           |
+| Variable | `VITE_GOOGLE_WEB_CLIENT_ID` | the **web** OAuth client ID (not the Android one) |
+| Secret   | `ANDROID_KEYSTORE_BASE64`   | output of `base64 -w0 backlog-release.jks`        |
+| Secret   | `ANDROID_KEYSTORE_PASSWORD` | the keystore password                             |
+| Secret   | `ANDROID_KEY_ALIAS`         | `backlog`                                         |
+| Secret   | `ANDROID_KEY_PASSWORD`      | the same password again                           |
+
+**Releasing.**
+
+1. Dry run first: Actions → _Android release_ → _Run workflow_. It builds and signs the APK and attaches it to the run as an artifact, without creating a release.
+2. Tag and push: `git tag v0.3.0 && git push origin v0.3.0`. The workflow attaches `backlog-v0.3.0.apk` to a new GitHub Release. Every release needs a higher version than the last one, because Android won't install a lower version code over a higher one.
+3. On the phone: open the release page, download the APK, and allow your browser to install unknown apps when Android asks.
+
+**Local builds** (optional; needs Android Studio): `pnpm android:sync` then `pnpm android:open`. A debug build is signed with your machine's debug key, so for Google sign-in in a debug build, add a second Android OAuth client with that SHA-1 (`cd android && ./gradlew signingReport`).
+
 ### Phase 1 exit check
 
 1. Open the deployed site, sign in with Google and with an email link using an allow-listed address.
@@ -112,3 +169,13 @@ Needs the keys from step 4 set and the functions deployed.
 2. Add one of each; they appear in the Library list.
 3. Add the same item twice: the second time says "Already in your library".
 4. Create a custom item and confirm it appears with a generated cover placeholder.
+
+### Phase 3 exit check
+
+Needs steps 6 and 7 done.
+
+1. On the deployed site, sign in with an email code. Signing in with a link should no longer be offered.
+2. A dry-run workflow run is green and produces a signed APK.
+3. Tag `v0.3.0`; the release has `backlog-v0.3.0.apk` attached.
+4. Install it on your phone. Sign in with Google (account picker, no browser) and with an email code; search, then add an item.
+5. Sign out and back in; quit and reopen the app and you should still be signed in.

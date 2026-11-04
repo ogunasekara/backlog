@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { sendEmailLink, signInWithGoogle } from './api'
+import { SignInCancelledError, sendEmailCode, signInWithGoogle, verifyEmailCode } from './api'
 
 /** OAuth failures (including allow-list rejections) come back as URL params. */
 function readRedirectError(): string | null {
@@ -19,6 +19,7 @@ function message(err: unknown): string {
 export function SignInPage() {
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(readRedirectError)
 
@@ -28,18 +29,34 @@ export function SignInPage() {
     try {
       await action()
     } catch (err) {
-      setError(message(err))
+      if (!(err instanceof SignInCancelledError)) setError(message(err))
     } finally {
       setBusy(false)
     }
   }
 
-  function onSendLink(e: FormEvent) {
+  function onSendCode(e: FormEvent) {
     e.preventDefault()
     const address = email.trim().toLowerCase()
     run(async () => {
-      await sendEmailLink(address)
+      await sendEmailCode(address)
+      setCode('')
       setSentTo(address)
+    })
+  }
+
+  function onVerifyCode(e: FormEvent) {
+    e.preventDefault()
+    if (sentTo === null) return
+    // AuthProvider picks up the new session and swaps this screen out.
+    run(() => verifyEmailCode(sentTo, code))
+  }
+
+  function onResend() {
+    if (sentTo === null) return
+    run(async () => {
+      await sendEmailCode(sentTo)
+      setCode('')
     })
   }
 
@@ -62,7 +79,7 @@ export function SignInPage() {
           </div>
 
           {sentTo === null ? (
-            <form className="flex flex-col gap-3" onSubmit={onSendLink}>
+            <form className="flex flex-col gap-3" onSubmit={onSendCode}>
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -73,19 +90,45 @@ export function SignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Button type="submit" disabled={busy}>
-                Email me a sign-in link
+                Email me a sign-in code
               </Button>
             </form>
           ) : (
-            <div className="flex flex-col gap-3">
+            <form className="flex flex-col gap-3" onSubmit={onVerifyCode}>
               <p role="status" className="text-sm">
-                Check <span className="font-medium">{sentTo}</span> for a sign-in link. Open it in
-                this browser to finish signing in.
+                We sent a 6-digit code to <span className="font-medium">{sentTo}</span>.
               </p>
-              <Button type="button" variant="ghost" onClick={() => setSentTo(null)}>
-                Use a different email
+              <Label htmlFor="code">Code</Label>
+              <Input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              />
+              <Button type="submit" disabled={busy || code.length !== 6}>
+                Sign in
               </Button>
-            </div>
+              <div className="flex justify-between">
+                <Button type="button" variant="ghost" disabled={busy} onClick={onResend}>
+                  Resend code
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    setSentTo(null)
+                    setError(null)
+                  }}
+                >
+                  Use a different email
+                </Button>
+              </div>
+            </form>
           )}
 
           {error && (

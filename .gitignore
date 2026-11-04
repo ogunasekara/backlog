@@ -37,3 +37,7 @@ supabase/seed.local.sql
 
 # Local edge function secrets
 supabase/functions/.env
+
+# Android signing keys (back these up offline; never commit)
+*.jks
+*.keystore

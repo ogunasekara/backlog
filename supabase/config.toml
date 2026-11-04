@@ -244,16 +244,16 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Email sign-in uses Supabase's default link templates, matching the hosted project
-# (custom templates there need custom SMTP). Phase 3 switches to the 6-digit code template
-# in ./supabase/templates/otp.html.
-# [auth.email.template.magic_link]
-# subject = "Your Backlog sign-in code"
-# content_path = "./supabase/templates/otp.html"
-#
-# [auth.email.template.confirmation]
-# subject = "Your Backlog sign-in code"
-# content_path = "./supabase/templates/otp.html"
+# Email sign-in uses a 6-digit code, not a link: on Android a link would open the website
+# instead of the app. A new user gets the confirmation email, a returning one the magic
+# link email, so both use the code template. Mirror these on the hosted project by hand.
+[auth.email.template.magic_link]
+subject = "Your Backlog sign-in code"
+content_path = "./supabase/templates/otp.html"
+
+[auth.email.template.confirmation]
+subject = "Your Backlog sign-in code"
+content_path = "./supabase/templates/otp.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

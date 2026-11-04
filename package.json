@@ -22,9 +22,14 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "functions:serve": "supabase functions serve --env-file supabase/functions/.env",
-    "functions:deploy": "supabase functions deploy search details"
+    "functions:deploy": "supabase functions deploy search details",
+    "android:sync": "pnpm build && cap sync android",
+    "android:open": "cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capgo/capacitor-social-login": "^8.5.15",
     "@supabase/supabase-js": "^2.117.3",
     "@tanstack/react-query": "^5.104.1",
     "class-variance-authority": "^0.7.1",
@@ -38,6 +43,7 @@
     "sonner": "^2.0.8"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
