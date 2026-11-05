@@ -35,7 +35,9 @@ export function AppShell() {
         </nav>
       </aside>
 
-      <main className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
+      {/* min-w-0 lets main shrink below its content's width; without it, one long
+          unwrapped title (e.g. a truncated library row) widens the whole page. */}
+      <main className="min-w-0 flex-1 p-4 pb-24 md:p-8 md:pb-8">
         <Outlet />
       </main>
 

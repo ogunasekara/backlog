@@ -138,18 +138,26 @@ function EntryDetail({ entry }: { entry: EntryWithMedia }) {
         <BackLink className="-ml-2.5 text-muted-foreground" />
       </div>
 
-      <div className="flex gap-4">
-        <CoverImage title={media.title} url={media.cover_url} className="w-28 shrink-0 sm:w-36" />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+      {/*
+        Mobile: a small cover beside the title, with the description full width below.
+        From sm up the cover spans both rows; `auto_1fr` rows keep its extra height out
+        of the gap between the title and the description. `items-start` stops the cover
+        stretching to the text's height, which would crop it out of its 2:3 shape.
+      */}
+      <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-x-4 gap-y-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:grid-rows-[auto_1fr]">
+        <CoverImage title={media.title} url={media.cover_url} className="sm:row-span-2" />
+        <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold break-words">{media.title}</h1>
           <p className="text-sm text-muted-foreground">
             {MEDIA_TYPE_LABELS[media.type]}
             {media.year ? ` · ${media.year}` : ''} · {SOURCE_LABELS[media.source]}
           </p>
-          {media.description && (
-            <p className="mt-2 line-clamp-6 text-sm text-muted-foreground">{media.description}</p>
-          )}
         </div>
+        {media.description && (
+          <p className="col-span-2 line-clamp-6 text-sm text-muted-foreground sm:col-span-1 sm:col-start-2">
+            {media.description}
+          </p>
+        )}
       </div>
 
       <Card className="py-5">
