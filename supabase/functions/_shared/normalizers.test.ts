@@ -7,6 +7,7 @@ import tmdbMovieDetail from './__fixtures__/tmdb-movie-detail.json'
 import tmdbMovieSearch from './__fixtures__/tmdb-search-movie.json'
 import tmdbTvSearch from './__fixtures__/tmdb-search-tv.json'
 import tmdbTvDetail from './__fixtures__/tmdb-tv-detail.json'
+import tmdbTvDetailAiring from './__fixtures__/tmdb-tv-detail-airing.json'
 import * as books from './google-books.ts'
 import { fetchJson, HttpError, toBlurb, yearFrom } from './http.ts'
 import * as igdb from './igdb.ts'
@@ -94,8 +95,38 @@ describe('TMDB TV', () => {
     const media = tmdb.normalizeTvDetail(tmdbTvDetail)
     expect(media.details).toEqual({
       season_episode_counts: [7, 13, 13, 13, 16],
+      last_aired: { season: 5, episode: 16 },
+      next_air: null,
+      ended: true,
       episode_runtime_minutes: 47,
     })
+  })
+
+  it('keeps the aired range of a show that is still airing', () => {
+    expect(tmdb.normalizeTvDetail(tmdbTvDetailAiring).details).toEqual({
+      season_episode_counts: [10],
+      last_aired: { season: 1, episode: 2 },
+      next_air: { season: 1, episode: 3, air_date: '2026-11-05' },
+      ended: false,
+    })
+  })
+
+  it('ignores specials and malformed episodes in the aired range', () => {
+    const details = tmdb.normalizeTvDetail({
+      ...tmdbTvDetailAiring,
+      last_episode_to_air: { season_number: 0, episode_number: 4, air_date: '2026-10-30' },
+      next_episode_to_air: { season_number: 1, air_date: '2026-11-05' },
+    }).details
+    expect(details).toMatchObject({ last_aired: null, next_air: null })
+  })
+
+  it('reads ended and canceled shows as finished, and falls back to in_production', () => {
+    expect(tmdb.hasEnded({ status: 'Ended' })).toBe(true)
+    expect(tmdb.hasEnded({ status: 'Canceled' })).toBe(true)
+    expect(tmdb.hasEnded({ status: 'Returning Series', in_production: false })).toBe(false)
+    expect(tmdb.hasEnded({ status: 'Planned' })).toBe(false)
+    expect(tmdb.hasEnded({ in_production: false })).toBe(true)
+    expect(tmdb.hasEnded({})).toBe(false)
   })
 
   it('handles a show with no seasons listed', () => {
@@ -107,6 +138,15 @@ describe('TMDB TV', () => {
     expect(
       tmdb.seasonEpisodeCounts([{ season_number: 1 }, { season_number: 2, episode_count: 4 }]),
     ).toEqual([0, 4])
+  })
+
+  it('keeps season numbers when a season is missing from the list', () => {
+    expect(
+      tmdb.seasonEpisodeCounts([
+        { season_number: 3, episode_count: 8 },
+        { season_number: 1, episode_count: 10 },
+      ]),
+    ).toEqual([10, 0, 8])
   })
 })
 

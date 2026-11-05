@@ -4,6 +4,7 @@ import { CoverImage } from '@/components/CoverImage'
 import { StarDisplay } from '@/components/StarRating'
 import { Badge } from '@/components/ui/badge'
 import { MEDIA_TYPE_LABELS, statusLabel } from '@/lib/labels'
+import { clampPointer, formatEpisode, pointerOf, seasonCountsOf } from '@/lib/tv'
 import type { EntryWithMedia } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +18,7 @@ type Props = {
 
 export function EntryRow({ entry, handle, hideStatus }: Props) {
   const { media } = entry
+  const episode = media.type === 'tv' ? clampPointer(pointerOf(entry), seasonCountsOf(media)) : null
   return (
     <div className="flex items-center rounded-lg border bg-background transition-colors has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring has-[a:hover]:bg-accent">
       {handle}
@@ -35,6 +37,9 @@ export function EntryRow({ entry, handle, hideStatus }: Props) {
             {media.year ? ` · ${media.year}` : ''}
             {media.type === 'book' && entry.progress_percent !== null
               ? ` · ${entry.progress_percent}%`
+              : ''}
+            {episode && (episode.season > 1 || episode.episode > 0)
+              ? ` · ${formatEpisode(episode)}`
               : ''}
           </p>
           {entry.rating !== null && <StarDisplay rating={entry.rating} />}

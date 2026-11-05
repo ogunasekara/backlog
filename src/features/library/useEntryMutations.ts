@@ -164,8 +164,12 @@ export function useRemoveEntry(options: { onRemoved?: () => void } = {}) {
   })
 }
 
-/** Re-fetches a catalog item's metadata through the `details` function. */
-export function useRefreshMetadata() {
+/**
+ * Re-fetches a catalog item's metadata through the `details` function. `quiet` is for
+ * the automatic refresh on opening a show: no toasts either way, since the user didn't
+ * ask and the cached metadata still works if it fails.
+ */
+export function useRefreshMetadata({ quiet = false }: { quiet?: boolean } = {}) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -180,8 +184,10 @@ export function useRefreshMetadata() {
       queryClient.setQueryData<EntryWithMedia[]>(entriesKey, (entries) =>
         entries?.map((entry) => (entry.media.id === media.id ? { ...entry, media } : entry)),
       )
-      toast.success('Metadata refreshed')
+      if (!quiet) toast.success('Metadata refreshed')
     },
-    onError: (error) => toast.error(errorMessage(error, 'Could not refresh the metadata')),
+    onError: (error) => {
+      if (!quiet) toast.error(errorMessage(error, 'Could not refresh the metadata'))
+    },
   })
 }

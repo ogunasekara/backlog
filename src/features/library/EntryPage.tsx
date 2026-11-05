@@ -32,6 +32,7 @@ import { MEDIA_TYPE_LABELS, SOURCE_LABELS, statusLabel } from '@/lib/labels'
 import { pageCountOf, progressFromPages, progressFromPercent } from '@/lib/progress'
 import type { EntryPatch } from '@/lib/status'
 import { ENTRY_STATUSES, type EntryStatus, type EntryWithMedia } from '@/lib/types'
+import { TvProgress } from './TvProgress'
 import {
   useChangeStatus,
   useMoveInBacklog,
@@ -240,6 +241,7 @@ function EntryDetail({ entry, backlog }: { entry: EntryWithMedia; backlog: Entry
           </div>
 
           {media.type === 'book' && <BookProgressFields entry={entry} onSave={save} />}
+          {media.type === 'tv' && <TvProgress entry={entry} onSave={save} />}
 
           <div className="sm:col-span-2">
             <NotesField value={entry.notes} onSave={(notes) => save({ notes })} />

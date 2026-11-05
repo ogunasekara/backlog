@@ -204,3 +204,16 @@ One migration (`set_backlog_positions`): run `pnpm exec supabase db push` before
 5. Open a backlog entry: it shows "N of M in your backlog". Try **Move to top** and **Move to bottom**.
 6. Change an entry's status to Backlog. It goes to the bottom.
 7. On your phone, scroll the backlog by swiping over the rows (not the handles); it should scroll, not drag. Then hold a handle briefly and drag. The order should match on the web after a refresh.
+
+### Phase 6 exit check
+
+Redeploy the edge functions (`pnpm functions:deploy`); no migration and no new secrets. Deploy `main`, then tag `v0.6.0` for the APK.
+
+1. Add a TV show that has **ended** and has at least two seasons (a short one helps) and open it. Progress reads "Not started" with "Up next: S1 E1".
+2. Tap **Next episode** while it's in Backlog. It asks to move it to Watching; choose **Keep as Backlog** and tap again: no second prompt. Reopen the show, tap **Next episode**, and choose **Move to Watching**; the start date fills in.
+3. Use **Set position** to jump to the last episode of season 1, then tap **Next episode**: it rolls over to S2 E1. Entering an episode past the end of a season is refused.
+4. Set the position to one before the final episode and tap **Next episode**. "That was the last episode" appears; choose **Mark completed**. The finish date fills in.
+5. Go back to the library: the show's row shows its episode, e.g. "S2 E8".
+6. Open a show that's still airing (e.g. Nocturne), set it to Watching, and use **Set position** to go to the latest aired episode. **Next episode** goes away and it says when the next one airs (e.g. "S1 E4 airs Nov 12, 2026"), or "hasn't aired yet" if TMDB has no date. No Completed prompt appears.
+7. After that episode airs, open the show again: it's "Up next", with no toast.
+8. Repeat 2 to 4 in the Android app.

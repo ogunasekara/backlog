@@ -49,6 +49,19 @@ describe('LibraryPage', () => {
     expect(screen.getByRole('img', { name: '4.5 stars' })).toBeInTheDocument()
   })
 
+  it("shows a started show's episode on its row, but not a new one's", async () => {
+    const watching = makeEntry(
+      { status: 'in_progress', tv_season: 2, tv_episode: 5 },
+      { type: 'tv', title: 'Watching', details: { season_episode_counts: [8, 10] } },
+    )
+    const fresh = makeEntry({ status: 'backlog' }, { type: 'tv', title: 'Fresh' })
+    vi.mocked(entriesApi.listEntries).mockResolvedValue([watching, fresh])
+    renderWithProviders(<LibraryPage />, { route: '/library' })
+
+    expect(await screen.findByRole('link', { name: /Watching/ })).toHaveTextContent('S2 E5')
+    expect(screen.getByRole('link', { name: /Fresh/ })).not.toHaveTextContent(/S\d+ E\d+/)
+  })
+
   it('links each row to its entry', async () => {
     renderWithProviders(<LibraryPage />, { route: '/library' })
     const link = await screen.findByRole('link', { name: /Inception/ })

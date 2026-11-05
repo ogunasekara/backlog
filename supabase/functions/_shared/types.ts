@@ -18,7 +18,18 @@ export type SearchResult = {
 
 /** Type-specific metadata stored in `media.details`. */
 export type MovieDetails = { runtime_minutes?: number }
-export type TvDetails = { season_episode_counts: number[]; episode_runtime_minutes?: number }
+export type TvEpisodeRef = { season: number; episode: number }
+export type TvDetails = {
+  /** Episodes TMDB lists per season (season number minus one), including unaired ones. */
+  season_episode_counts: number[]
+  /** The latest aired episode; null if none has aired. Missing on rows saved before Phase 6. */
+  last_aired?: TvEpisodeRef | null
+  /** The next scheduled episode, with its air date (YYYY-MM-DD); null if none is scheduled. */
+  next_air?: (TvEpisodeRef & { air_date: string | null }) | null
+  /** Ended or canceled: no more episodes are coming. */
+  ended?: boolean
+  episode_runtime_minutes?: number
+}
 export type BookDetails = { page_count?: number; authors?: string[] }
 export type GameDetails = { platforms?: string[] }
 

@@ -55,5 +55,14 @@
   ],
   "status": "Ended",
   "type": "Scripted",
-  "vote_average": 8.9
+  "vote_average": 8.9,
+  "in_production": false,
+  "last_episode_to_air": {
+    "air_date": "2013-09-29",
+    "episode_number": 16,
+    "id": 62161,
+    "name": "Felina",
+    "season_number": 5
+  },
+  "next_episode_to_air": null
 }

@@ -10,6 +10,8 @@ export type EntryPatch = Partial<
     | 'finished_on'
     | 'progress_percent'
     | 'progress_pages'
+    | 'tv_season'
+    | 'tv_episode'
     | 'backlog_position'
   >
 >

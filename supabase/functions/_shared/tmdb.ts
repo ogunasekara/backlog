@@ -3,7 +3,7 @@
  * Docs: https://developer.themoviedb.org/reference/intro/getting-started
  */
 import { fetchJson, toBlurb, yearFrom } from './http.ts'
-import type { NormalizedMedia, SearchResult, TvDetails } from './types.ts'
+import type { NormalizedMedia, SearchResult, TvDetails, TvEpisodeRef } from './types.ts'
 
 const API = 'https://api.themoviedb.org/3'
 const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500'
@@ -36,9 +36,15 @@ type TmdbMovieDetail = TmdbMovieHit & { runtime?: number | null }
 
 type TmdbSeason = { season_number?: number; episode_count?: number }
 
+type TmdbEpisode = { season_number?: number; episode_number?: number; air_date?: string | null }
+
 type TmdbTvDetail = TmdbTvHit & {
   seasons?: TmdbSeason[]
   episode_run_time?: number[]
+  status?: string
+  in_production?: boolean
+  last_episode_to_air?: TmdbEpisode | null
+  next_episode_to_air?: TmdbEpisode | null
 }
 
 export function coverUrl(posterPath: string | null | undefined): string | undefined {
@@ -102,19 +108,45 @@ export function normalizeMovieDetail(detail: TmdbMovieDetail): NormalizedMedia {
 
 /**
  * Season 0 holds specials, which the "next episode" pointer skips, so it is dropped.
- * The counts array is indexed by season number minus one.
+ * The counts array is indexed by season number minus one; a season TMDB doesn't list
+ * (or lists without a count) is 0, so later seasons keep their numbers.
  */
 export function seasonEpisodeCounts(seasons: TmdbSeason[] | undefined): number[] {
-  return (seasons ?? [])
-    .filter((season) => (season.season_number ?? 0) > 0)
-    .sort((a, b) => (a.season_number ?? 0) - (b.season_number ?? 0))
-    .map((season) => season.episode_count ?? 0)
+  const counts: number[] = []
+  for (const { season_number, episode_count } of seasons ?? []) {
+    if (!season_number || season_number < 1 || !Number.isInteger(season_number)) continue
+    counts[season_number - 1] = Math.max(0, episode_count ?? 0)
+  }
+  return Array.from(counts, (count) => count ?? 0)
+}
+
+/** A regular-season episode reference; specials (season 0) and malformed ones are null. */
+function episodeRef(episode: TmdbEpisode | null | undefined): TvEpisodeRef | null {
+  const season = episode?.season_number
+  const number = episode?.episode_number
+  if (!Number.isInteger(season) || !Number.isInteger(number)) return null
+  if (season! < 1 || number! < 1) return null
+  return { season: season!, episode: number! }
+}
+
+/** No more episodes are coming. With no status, a show out of production counts as ended. */
+export function hasEnded(detail: Pick<TmdbTvDetail, 'status' | 'in_production'>): boolean {
+  if (detail.status) return detail.status === 'Ended' || detail.status === 'Canceled'
+  return detail.in_production === false
 }
 
 export function normalizeTvDetail(detail: TmdbTvDetail): NormalizedMedia {
   const title = detail.name?.trim() || detail.original_name?.trim()
   if (!detail.id || !title) throw new Error('TMDB TV detail is missing an id or title')
-  const details: TvDetails = { season_episode_counts: seasonEpisodeCounts(detail.seasons) }
+  // TMDB lists a whole season's episodes before they air, so the aired range is kept
+  // alongside the counts.
+  const next = episodeRef(detail.next_episode_to_air)
+  const details: TvDetails = {
+    season_episode_counts: seasonEpisodeCounts(detail.seasons),
+    last_aired: episodeRef(detail.last_episode_to_air),
+    next_air: next && { ...next, air_date: detail.next_episode_to_air?.air_date || null },
+    ended: hasEnded(detail),
+  }
   const runtime = detail.episode_run_time?.find((minutes) => minutes > 0)
   if (runtime) details.episode_runtime_minutes = runtime
   return {

@@ -10,9 +10,67 @@ Tracks build status against [implementation-plan.md](implementation-plan.md). Up
 | 2. Search and add                | ✅                                 |
 | 3. Android shell                 | ✅                                 |
 | 4. Library and tracking          | ✅                                 |
-| 5. Backlog ordering              | 🟡 Code complete; needs your check |
-| 6. TV progress                   | ⬜                                 |
+| 5. Backlog ordering              | ✅                                 |
+| 6. TV progress                   | 🟡 Code complete; needs your check |
 | 7. Offline read cache and polish | ⬜                                 |
+
+---
+
+## Phase 6: TV progress
+
+_Last updated: 2026-11-05_
+
+### Tasks
+
+| Task                                   | Status | Notes                                                                                                        |
+| -------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
+| S/E display on the entry               | ✅     | "Not started" at S1E0, otherwise "S2 E5", with "Up next" and "5 of 10 in season 2". Rows show "S2 E5" too    |
+| "Next episode" button                  | ✅     | Saves the next episode as the last one watched; optimistic like every other edit                             |
+| Manual set position                    | ✅     | Dialog with season and episode, checked against the known counts; episode 0 means that season isn't started  |
+| Rollover logic with unit tests         | ✅     | `src/lib/tv.ts`: within a season, to the next season, skipping empty seasons, and finished after the last    |
+| Refresh season counts on open          | ✅     | Once per visit for an in-progress catalog show; quiet (no toasts), and a failure keeps the cached counts     |
+| Clamp a pointer a refresh made invalid | ✅     | Displayed and stepped from the clamped position                                                              |
+| Completion prompt after the final one  | ✅     | Only for a show that has ended. "That was the last episode": Mark completed / Not now; the button then stays |
+| Prompt to move to In progress          | ✅     | On "Next episode" from a show that isn't Watching; declining holds for the rest of the visit                 |
+| Only aired episodes are offered        | ✅     | Stops at the latest aired episode with "S1 E4 airs Nov 12, 2026"; "You're caught up" between seasons         |
+
+### Exit criteria
+
+- [ ] Stepping through a multi-season show rolls over correctly and ends with the Completed prompt. _Needs your [Phase 6 exit check](setup.md#phase-6-exit-check)._
+
+### Verified
+
+- 212 unit and component tests pass (51 new). The component tests drive the real entry screen: stepping a 2/1/2-episode show from S1E0 gives S1E1, S1E2, S2E1, S3E1, S3E2 and then the Completed prompt, which saves Completed with today's finish date. Also covered: the start prompt from Backlog (accept and decline), a one-episode show asking to complete rather than start, the refresh on open bringing in a new season, a failed refresh staying silent, clamping, set position with validation, and a custom show counting up with no seasons.
+- Airing shows, with Nocturne's real TMDB data from 2026-11-05 (10 listed, 2 aired, episode 3 due that day): stepping stops at S1 E2 with "S1 E3 airs Nov 5, 2026", the episode is offered on its air date, a refresh that adds an aired episode makes it up next, and the end of a season with more to come is "caught up" with no Completed prompt.
+- The local `details` function returns and saves the aired range for Nocturne.
+- Lint, typecheck, format check and build are clean.
+
+### Not verified
+
+- **No browser or device click-through.** Component tests run against mocked APIs.
+- **RLS tests were not re-run.** No schema or policy changes (the `tv_season`/`tv_episode` columns are from Phase 1).
+- **Real TMDB season data** beyond Nocturne. A long-running show is the best real check.
+
+### Decisions and deviations
+
+- **The pointer is the last episode watched.** "Next episode" means "I watched the next one", so the Completed prompt appears when you reach the finale, not one press later.
+- **The start prompt covers any status but Watching**, not just Backlog: resuming an On hold show, or starting a new season of a Completed one, asks the same way. It's always a prompt, never forced.
+- **Clamping happens on read, not with a write.** Writing the clamped value from an effect could loop on a failing save. The next step or set position saves a valid position anyway.
+- **Seasons with no episodes are skipped.** TMDB lists announced seasons with 0 episodes; without the skip, rollover would land on an episode that doesn't exist.
+- **Season counts are now indexed by season number** (`seasonEpisodeCounts` in the TMDB normalizer). If TMDB skipped a season in its list, every later season used to shift down one. Takes effect as shows are refreshed, which opening an in-progress show now does.
+- **Only aired episodes are offered (found in the exit check).** TMDB lists a whole season before it airs, so Nocturne offered all 10 episodes with 2 aired, and would have prompted Completed at E10. `details` now also saves the last aired episode, the next scheduled one with its air date, and whether the show has ended (Ended or Canceled). The scheduled episode is offered from its air date in local time, since the saved data is only as fresh as the last refresh.
+- **The Completed prompt needs an ended show.** At the end of what's listed for a show that's still going, it says "You're caught up" instead. You can still set Completed from the status menu.
+- **Set position can go past the aired episodes**, up to what TMDB lists. You may know better than the metadata.
+- **Shows saved before this change count as fully aired and ended**, which is how they behaved before, until they're refreshed (open one you're watching, or tap **Refresh metadata**).
+- **Custom shows (no counts) just count up.** No rollover and no Completed prompt; use set position for a new season.
+- **No "previous episode" button.** Set position fixes a mis-tap.
+- **The refresh on open runs on every visit**, with no throttle. It's one TMDB call.
+
+### Your next steps for Phase 6
+
+1. Redeploy the edge functions (`pnpm functions:deploy`) for the TMDB changes (season numbering and aired episodes). No migration and no new secrets.
+2. Deploy `main` and tag `v0.6.0` for the APK.
+3. Walk the [Phase 6 exit check](setup.md#phase-6-exit-check).
 
 ---
 
@@ -35,7 +93,7 @@ _Last updated: 2026-11-05_
 
 ### Exit criteria
 
-- [ ] Reordering persists across sessions and devices, and the per-type tabs stay consistent with the global order. _Needs your [Phase 5 exit check](setup.md#phase-5-exit-check)._
+- [x] Reordering persists across sessions and devices, and the per-type tabs stay consistent with the global order. _Exit check walked on 2026-11-05._
 
 ### Verified
 
@@ -64,7 +122,7 @@ _Last updated: 2026-11-05_
 - **Move to top/bottom lives on the entry screen** rather than in a row menu, to keep rows to one link plus a handle.
 - **Ties sort by date added**, so equal keys still order the same everywhere.
 
-### Your next steps for Phase 5
+### Your next steps for Phase 5 (done)
 
 1. Push the new migration to the hosted project **before** deploying: `pnpm exec supabase db push`. Without it, type-tab swaps fail (moves in All still work).
 2. Deploy `main` and tag `v0.5.0` for the APK.
