@@ -2,17 +2,19 @@
 
 Tracks build status against [implementation-plan.md](implementation-plan.md). Update this file as work lands.
 
+**v1 is complete:** every box in the plan's v1 checklist is ticked (2026-11-05).
+
 **Legend:** ✅ done · 🟡 done in repo, needs a manual step · ⬜ not started
 
-| Phase                            | Status                             |
-| -------------------------------- | ---------------------------------- |
-| 1. Foundation                    | ✅                                 |
-| 2. Search and add                | ✅                                 |
-| 3. Android shell                 | ✅                                 |
-| 4. Library and tracking          | ✅                                 |
-| 5. Backlog ordering              | ✅                                 |
-| 6. TV progress                   | ✅                                 |
-| 7. Offline read cache and polish | 🟡 Code complete; needs your check |
+| Phase                            | Status |
+| -------------------------------- | ------ |
+| 1. Foundation                    | ✅     |
+| 2. Search and add                | ✅     |
+| 3. Android shell                 | ✅     |
+| 4. Library and tracking          | ✅     |
+| 5. Backlog ordering              | ✅     |
+| 6. TV progress                   | ✅     |
+| 7. Offline read cache and polish | ✅     |
 
 ---
 
@@ -22,35 +24,35 @@ _Last updated: 2026-11-05_
 
 ### Tasks
 
-| Task                                     | Status | Notes                                                                                                                      |
-| ---------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
-| Persist the query cache to IndexedDB     | ✅     | Only the library is saved (not search results); kept 30 days; cleared on sign-out                                          |
-| App-shell service worker, manifest, icon | ✅     | `vite-plugin-pwa`, web only. New app icon; PNGs and favicon are generated from `public/icon.svg` at build time             |
-| APK opens with no network                | ✅     | Falls back to the saved session when an expired token can't be refreshed offline. Checked in a browser, not yet on a phone |
-| "Offline, read-only" indicator           | ✅     | Banner above every screen                                                                                                  |
-| Disable writes when offline              | ✅     | Entry fields and buttons, drag handles, search and add, custom items, export, sign out                                     |
-| Empty, loading and error states, toasts  | ✅     | Most existed; load errors now have **Try again**, and a failed refresh keeps the cached library on screen                  |
-| Settings: export, sign out, version      | ✅     | JSON export (download on the web, share sheet on Android); version from the tag or `git describe`; TMDB attribution        |
-| `keepalive.yml`                          | ✅     | Calls a new `keepalive()` database function twice a week                                                                   |
-| Playwright end-to-end tests              | ✅     | Sign in, search and add, reorder, TV progress, plus opening the saved library offline. Also a CI job                       |
-| Final pass against the v1 checklist      | 🟡     | See below                                                                                                                  |
+| Task                                     | Status | Notes                                                                                                               |
+| ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| Persist the query cache to IndexedDB     | ✅     | Only the library is saved (not search results); kept 30 days; cleared on sign-out                                   |
+| App-shell service worker, manifest, icon | ✅     | `vite-plugin-pwa`, web only. New app icon; PNGs and favicon are generated from `public/icon.svg` at build time      |
+| APK opens with no network                | ✅     | Falls back to the saved session when an expired token can't be refreshed offline                                    |
+| "Offline, read-only" indicator           | ✅     | Banner above every screen                                                                                           |
+| Disable writes when offline              | ✅     | Entry fields and buttons, drag handles, search and add, custom items, export, sign out                              |
+| Empty, loading and error states, toasts  | ✅     | Most existed; load errors now have **Try again**, and a failed refresh keeps the cached library on screen           |
+| Settings: export, sign out, version      | ✅     | JSON export (download on the web, share sheet on Android); version from the tag or `git describe`; TMDB attribution |
+| `keepalive.yml`                          | ✅     | Calls a new `keepalive()` database function twice a week                                                            |
+| Playwright end-to-end tests              | ✅     | Sign in, search and add, reorder, TV progress, plus opening the saved library offline. Also a CI job                |
+| Final pass against the v1 checklist      | ✅     | See below                                                                                                           |
 
 ### Exit criteria
 
-- [ ] Every box in the v1 checklist is ticked. _Needs your [Phase 7 exit check](setup.md#phase-7-exit-check)._
+- [x] Every box in the v1 checklist is ticked. _Exit check walked on 2026-11-05._
 
-**v1 checklist, as it stands:**
+**v1 checklist:**
 
-| Item                                      | State                                                                     |
-| ----------------------------------------- | ------------------------------------------------------------------------- |
-| Sign in on web and Android                | Done (Phases 1 and 3)                                                     |
-| Search all four sources; custom items     | Done (Phase 2)                                                            |
-| Status, rating, notes, dates              | Done (Phase 4)                                                            |
-| Reorder by drag and drop                  | Done (Phase 5)                                                            |
-| TV progress with "next episode"           | Done (Phase 6)                                                            |
-| Browse the library offline (read-only)    | Code done; needs the exit check on the deployed site and the phone        |
-| Export all data as JSON                   | Code done; the Android share sheet needs a `v0.7.0` APK and a phone check |
-| Install app updates from a GitHub Release | Done (Phase 3)                                                            |
+| Item                                      | State                 |
+| ----------------------------------------- | --------------------- |
+| Sign in on web and Android                | Done (Phases 1 and 3) |
+| Search all four sources; custom items     | Done (Phase 2)        |
+| Status, rating, notes, dates              | Done (Phase 4)        |
+| Reorder by drag and drop                  | Done (Phase 5)        |
+| TV progress with "next episode"           | Done (Phase 6)        |
+| Browse the library offline (read-only)    | Done (Phase 7)        |
+| Export all data as JSON                   | Done (Phase 7)        |
+| Install app updates from a GitHub Release | Done (Phase 3)        |
 
 ### Verified
 
@@ -59,12 +61,11 @@ _Last updated: 2026-11-05_
 - 5 Playwright tests pass against local Supabase, including reloading with Supabase unreachable and seeing the library from IndexedDB.
 - A production build in Chromium: with the server stopped and the network off, the service worker serves the app, the saved library opens, the banner shows and editing is disabled.
 - The keep-alive call works against local Supabase. Lint, typecheck, format check and build are clean.
+- The [Phase 7 exit check](setup.md#phase-7-exit-check), walked on 2026-11-05: offline reload and read-only mode on the deployed site, PWA install and update prompt, export on the web and through the Android share sheet, opening the `v0.7.0` APK offline, per-device sign-out, and a manual run of the keep-alive workflow.
 
 ### Not verified
 
-- **Nothing on a phone yet:** opening the APK offline, export through the share sheet.
-- **The CI e2e job and the keep-alive workflow haven't run on GitHub yet.**
-- **Installing the PWA and the update prompt** on the deployed site.
+- **Opening the APK offline after more than an hour** (the expired-token case) is covered by tests; the exit check listed it as optional.
 
 ### Bugs found by running it
 
@@ -85,7 +86,7 @@ _Last updated: 2026-11-05_
 - **E2E tests stub the `search` and `details` functions** (no API keys in CI) and run in desktop Chrome: dnd-kit's keyboard reordering doesn't move under mobile emulation, and touch dragging is a phone check anyway.
 - **Export is the server's data, not the cache**, so it needs a connection.
 
-### Your next steps for Phase 7
+### Your next steps for Phase 7 (done)
 
 1. Push the migration: `pnpm exec supabase db push`.
 2. Deploy `main` and tag `v0.7.0` for the APK.

@@ -10,14 +10,14 @@ A personal tool with real accounts, restricted to an email allow-list and built 
 
 ### v1 "done" checklist
 
-- [ ] Sign in on web and Android (Google, or 6-digit email code)
-- [ ] Search all four sources and add items; create custom items
-- [ ] Set status, rating, notes, and start/finish dates
-- [ ] Reorder the backlog by drag and drop
-- [ ] Track TV progress with a "next episode" button
-- [ ] Browse the library offline (read-only)
-- [ ] Export all data as JSON
-- [ ] Install app updates from a GitHub Release
+- [x] Sign in on web and Android (Google, or 6-digit email code)
+- [x] Search all four sources and add items; create custom items
+- [x] Set status, rating, notes, and start/finish dates
+- [x] Reorder the backlog by drag and drop
+- [x] Track TV progress with a "next episode" button
+- [x] Browse the library offline (read-only)
+- [x] Export all data as JSON
+- [x] Install app updates from a GitHub Release
 
 Anything not on this list waits for v2.
 
