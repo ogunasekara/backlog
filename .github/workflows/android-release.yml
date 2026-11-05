@@ -50,19 +50,29 @@ jobs:
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
       - name: Check configuration
+        # Named exactly as in GitHub, so the error lists what to add.
         env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          missing=()
-          for name in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY VITE_GOOGLE_WEB_CLIENT_ID \
-                      KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
-            [[ -n "${!name}" ]] || missing+=("$name")
+          missing_vars=() missing_secrets=()
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY VITE_GOOGLE_WEB_CLIENT_ID; do
+            [[ -n "${!name}" ]] || missing_vars+=("$name")
           done
-          if (( ${#missing[@]} )); then
-            echo "::error::Missing repository variables/secrets: ${missing[*]} (see docs/setup.md)"
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS \
+                      ANDROID_KEY_PASSWORD; do
+            [[ -n "${!name}" ]] || missing_secrets+=("$name")
+          done
+          if (( ${#missing_vars[@]} )); then
+            echo "::error::Missing repository variables (Actions → Variables tab): ${missing_vars[*]}"
+          fi
+          if (( ${#missing_secrets[@]} )); then
+            echo "::error::Missing repository secrets (Actions → Secrets tab): ${missing_secrets[*]}"
+          fi
+          if (( ${#missing_vars[@]} + ${#missing_secrets[@]} )); then
+            echo "Environment, Codespaces, and Dependabot values are not visible here (see docs/setup.md)."
             exit 1
           fi
 
