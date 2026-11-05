@@ -56,7 +56,9 @@ async function signInWithGoogleNative() {
   try {
     const { result } = await SocialLogin.login({
       provider: 'google',
-      options: { scopes: ['email', 'profile'], nonce: await sha256Hex(nonce) },
+      // No `scopes`: the plugin then uses Credential Manager, whose ID token already carries
+      // email and profile. Passing any scopes needs a MainActivity override and a different flow.
+      options: { nonce: await sha256Hex(nonce) },
     })
     if ('idToken' in result) idToken = result.idToken
   } catch (err) {
