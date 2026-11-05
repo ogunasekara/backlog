@@ -1,9 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
-import { CoverImage } from '@/components/CoverImage'
-import { StarDisplay } from '@/components/StarRating'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -16,14 +13,18 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEntries } from '@/lib/api/entries'
+import { compareBacklog } from '@/lib/backlog'
 import { entriesKey } from '@/lib/api/keys'
-import { MEDIA_TYPE_LABELS, SCOPE_LABELS, statusLabel } from '@/lib/labels'
-import { ENTRY_STATUSES, type EntryWithMedia, type SearchScope } from '@/lib/types'
+import { SCOPE_LABELS, statusLabel } from '@/lib/labels'
+import { ENTRY_STATUSES, type SearchScope } from '@/lib/types'
+import { BacklogList } from './BacklogList'
+import { EntryRow } from './EntryRow'
 import {
   applyLibraryView,
-  LIBRARY_SORTS,
+  defaultSort,
   parseLibraryView,
   SORT_LABELS,
+  sortsFor,
   type LibraryView,
 } from './filters'
 
@@ -51,6 +52,11 @@ export function LibraryPage() {
 
   const visible = entries.data ? applyLibraryView(entries.data, view) : []
   const searchLink = view.type ? `/search?type=${view.type}` : '/search'
+  // Dragging only makes sense when the list shows the backlog in its own order.
+  const reorderable = view.status === 'backlog' && view.sort === 'position'
+  const backlog = reorderable
+    ? (entries.data ?? []).filter(({ status }) => status === 'backlog').sort(compareBacklog)
+    : []
 
   return (
     <section className="flex flex-col gap-6 pb-16">
@@ -104,13 +110,15 @@ export function LibraryPage() {
               <Label htmlFor="sort">Sort by</Label>
               <Select
                 value={view.sort}
-                onValueChange={(next) => setParam('sort', next === 'added' ? null : next)}
+                onValueChange={(next) =>
+                  setParam('sort', next === defaultSort(view.status) ? null : next)
+                }
               >
                 <SelectTrigger id="sort" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {LIBRARY_SORTS.map((value) => (
+                  {sortsFor(view.status).map((value) => (
                     <SelectItem key={value} value={value}>
                       {SORT_LABELS[value]}
                     </SelectItem>
@@ -149,7 +157,14 @@ export function LibraryPage() {
             <p className="text-muted-foreground">Nothing here matches these filters.</p>
           )}
 
-          {visible.length > 0 && (
+          {visible.length > 0 && reorderable && (
+            <>
+              <p className="-mt-1 text-sm text-muted-foreground">Drag the handle to reorder.</p>
+              <BacklogList backlog={backlog} type={view.type} />
+            </>
+          )}
+
+          {visible.length > 0 && !reorderable && (
             <ul className="flex flex-col gap-3">
               {visible.map((entry) => (
                 <li key={entry.id}>
@@ -161,31 +176,5 @@ export function LibraryPage() {
         </TabsContent>
       </Tabs>
     </section>
-  )
-}
-
-function EntryRow({ entry }: { entry: EntryWithMedia }) {
-  const { media } = entry
-  return (
-    <Link
-      to={`/library/${entry.id}`}
-      className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-    >
-      <CoverImage title={media.title} url={media.cover_url} className="w-12 shrink-0" />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="truncate font-medium">{media.title}</p>
-        <p className="text-sm text-muted-foreground">
-          {MEDIA_TYPE_LABELS[media.type]}
-          {media.year ? ` · ${media.year}` : ''}
-          {media.type === 'book' && entry.progress_percent !== null
-            ? ` · ${entry.progress_percent}%`
-            : ''}
-        </p>
-        {entry.rating !== null && <StarDisplay rating={entry.rating} />}
-      </div>
-      <Badge variant="secondary" className="shrink-0">
-        {statusLabel(entry.status, media.type)}
-      </Badge>
-    </Link>
   )
 }

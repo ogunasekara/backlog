@@ -265,6 +265,87 @@ describe('backlog ordering', () => {
   })
 })
 
+describe('set_backlog_positions', () => {
+  let media: string[]
+  let entries: string[]
+
+  beforeAll(async () => {
+    const inserted = await admin
+      .from('media')
+      .insert(
+        ['One', 'Two', 'Done'].map((title, i) => ({
+          type: 'tv' as const,
+          source: 'tmdb' as const,
+          external_id: `swap-${run}-${i}`,
+          title,
+        })),
+      )
+      .select('id')
+    if (inserted.error) throw inserted.error
+    media = inserted.data.map((row) => row.id)
+
+    const created = await userA.client
+      .from('entries')
+      .insert([
+        { media_id: media[0], status: 'backlog', backlog_position: 'b0' },
+        { media_id: media[1], status: 'backlog', backlog_position: 'b4' },
+        { media_id: media[2], status: 'completed', backlog_position: null },
+      ])
+      .select('id')
+    if (created.error) throw created.error
+    entries = created.data.map((row) => row.id)
+  })
+
+  afterAll(async () => {
+    await admin.from('media').delete().in('id', media)
+  })
+
+  async function positions() {
+    const { data } = await admin.from('entries').select('id, backlog_position').in('id', entries)
+    return Object.fromEntries((data ?? []).map((row) => [row.id, row.backlog_position]))
+  }
+
+  it('lets the owner write several positions at once', async () => {
+    const { error } = await userA.client.rpc('set_backlog_positions', {
+      positions: [
+        { id: entries[0], position: 'b4' },
+        { id: entries[1], position: 'b0' },
+      ],
+    })
+    expect(error).toBeNull()
+    expect(await positions()).toMatchObject({ [entries[0]!]: 'b4', [entries[1]!]: 'b0' })
+  })
+
+  it("rejects another user's entries and changes nothing", async () => {
+    const before = await positions()
+    const { error } = await userB.client.rpc('set_backlog_positions', {
+      positions: [
+        { id: entries[0], position: 'b1' },
+        { id: entries[1], position: 'b2' },
+      ],
+    })
+    expect(error?.code).toBe('P0002')
+    expect(await positions()).toEqual(before)
+  })
+
+  it('fails as a whole when one entry is not in the backlog', async () => {
+    const before = await positions()
+    const { error } = await userA.client.rpc('set_backlog_positions', {
+      positions: [
+        { id: entries[0], position: 'b1' },
+        { id: entries[2], position: 'b2' },
+      ],
+    })
+    expect(error?.code).toBe('23514')
+    expect(await positions()).toEqual(before)
+  })
+
+  it('is not callable anonymously', async () => {
+    const { error } = await anon.rpc('set_backlog_positions', { positions: [] })
+    expect(error).not.toBeNull()
+  })
+})
+
 describe('catalog upsert (service role)', () => {
   it('updates the existing row instead of duplicating it', async () => {
     const row = {

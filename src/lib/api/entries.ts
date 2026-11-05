@@ -1,5 +1,6 @@
 import { generateKeyBetween } from 'fractional-indexing'
 import { supabase } from '@/lib/supabase'
+import type { PositionUpdate } from '@/lib/backlog'
 import type { EntryPatch } from '@/lib/status'
 import type { Entry, EntryStatus, EntryWithMedia, Media, MediaType } from '@/lib/types'
 
@@ -135,5 +136,11 @@ export async function removeEntry(entry: EntryWithMedia): Promise<void> {
     entry.media.source === 'custom'
       ? await supabase.from('media').delete().eq('id', entry.media.id)
       : await supabase.from('entries').delete().eq('id', entry.id)
+  if (error) throw error
+}
+
+/** Writes several backlog positions in one statement (see the set_backlog_positions migration). */
+export async function setBacklogPositions(updates: PositionUpdate[]): Promise<void> {
+  const { error } = await supabase.rpc('set_backlog_positions', { positions: updates })
   if (error) throw error
 }

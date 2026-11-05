@@ -192,3 +192,15 @@ No new setup: no migration and no new secrets. Deploy `main`, then tag `v0.4.0` 
 6. Tap **Refresh metadata** on a catalog item; tap **Remove** on a test item.
 7. In Search, add something you already have. It opens the existing entry.
 8. Repeat 2 and 4 in the Android app.
+
+### Phase 5 exit check
+
+One migration (`set_backlog_positions`): run `pnpm exec supabase db push` before deploying. No new secrets.
+
+1. In Library, set the status to **Backlog**. The sort switches to "Backlog order" and each row has a handle.
+2. Drag a few rows with the mouse. Reload, and the order is the same.
+3. Switch to the **Games** tab (still on Backlog) and drag the lower game above the higher one. Back on **All**, the two games have swapped places, and everything between and around them is where it was.
+4. Use the keyboard: Tab to a handle, press Space, move with the arrow keys, press Space to drop. Escape cancels.
+5. Open a backlog entry: it shows "N of M in your backlog". Try **Move to top** and **Move to bottom**.
+6. Change an entry's status to Backlog. It goes to the bottom.
+7. On your phone, scroll the backlog by swiping over the rows (not the handles); it should scroll, not drag. Then hold a handle briefly and drag. The order should match on the web after a refresh.

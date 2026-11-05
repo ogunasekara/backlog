@@ -18,6 +18,29 @@ describe('parseLibraryView', () => {
   })
 })
 
+describe('backlog order', () => {
+  it('is the default, and only valid, when filtering to the backlog', () => {
+    expect(parseLibraryView(new URLSearchParams('status=backlog')).sort).toBe('position')
+    expect(parseLibraryView(new URLSearchParams('status=backlog&sort=title')).sort).toBe('title')
+    expect(parseLibraryView(new URLSearchParams('status=completed&sort=position')).sort).toBe(
+      'added',
+    )
+    expect(parseLibraryView(new URLSearchParams('sort=position')).sort).toBe('added')
+  })
+
+  it('sorts by backlog position', () => {
+    const second = makeEntry({ backlog_position: 'a1' }, { title: 'Second' })
+    const first = makeEntry({ backlog_position: 'Zz' }, { title: 'First' })
+    const third = makeEntry({ backlog_position: 'a1V' }, { title: 'Third' })
+    const sorted = applyLibraryView([second, third, first], {
+      type: null,
+      status: 'backlog',
+      sort: 'position',
+    })
+    expect(sorted.map((entry) => entry.media.title)).toEqual(['First', 'Second', 'Third'])
+  })
+})
+
 describe('applyLibraryView', () => {
   const dune = makeEntry(
     { status: 'completed', rating: 9, created_at: '2026-10-01T00:00:00Z' },

@@ -1,3 +1,4 @@
+import { compareBacklog } from '@/lib/backlog'
 import {
   ENTRY_STATUSES,
   MEDIA_TYPES,
@@ -6,10 +7,21 @@ import {
   type MediaType,
 } from '@/lib/types'
 
-export type LibrarySort = 'added' | 'title' | 'rating'
-export const LIBRARY_SORTS: LibrarySort[] = ['added', 'title', 'rating']
+export type LibrarySort = 'position' | 'added' | 'title' | 'rating'
+
+/** Backlog order only means something, and is the default, when showing the backlog. */
+export function sortsFor(status: EntryStatus | null): LibrarySort[] {
+  return status === 'backlog'
+    ? ['position', 'added', 'title', 'rating']
+    : ['added', 'title', 'rating']
+}
+
+export function defaultSort(status: EntryStatus | null): LibrarySort {
+  return sortsFor(status)[0]!
+}
 
 export const SORT_LABELS: Record<LibrarySort, string> = {
+  position: 'Backlog order',
   added: 'Date added',
   title: 'Title',
   rating: 'Rating',
@@ -23,13 +35,18 @@ export type LibraryView = {
 
 /** Reads the view from the URL, ignoring values that aren't valid. */
 export function parseLibraryView(params: URLSearchParams): LibraryView {
-  const type = params.get('type')
-  const status = params.get('status')
-  const sort = params.get('sort')
+  const typeParam = params.get('type')
+  const statusParam = params.get('status')
+  const sortParam = params.get('sort')
+  const status = (ENTRY_STATUSES as string[]).includes(statusParam ?? '')
+    ? (statusParam as EntryStatus)
+    : null
   return {
-    type: (MEDIA_TYPES as string[]).includes(type ?? '') ? (type as MediaType) : null,
-    status: (ENTRY_STATUSES as string[]).includes(status ?? '') ? (status as EntryStatus) : null,
-    sort: (LIBRARY_SORTS as string[]).includes(sort ?? '') ? (sort as LibrarySort) : 'added',
+    type: (MEDIA_TYPES as string[]).includes(typeParam ?? '') ? (typeParam as MediaType) : null,
+    status,
+    sort: (sortsFor(status) as string[]).includes(sortParam ?? '')
+      ? (sortParam as LibrarySort)
+      : defaultSort(status),
   }
 }
 
@@ -40,6 +57,7 @@ const byAddedDesc = (a: EntryWithMedia, b: EntryWithMedia) =>
   b.created_at.localeCompare(a.created_at)
 
 const COMPARATORS: Record<LibrarySort, (a: EntryWithMedia, b: EntryWithMedia) => number> = {
+  position: compareBacklog,
   added: byAddedDesc,
   title: (a, b) => byTitle(a, b) || byAddedDesc(a, b),
   // Highest first; unrated entries go last, then alphabetical among equals.

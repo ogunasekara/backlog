@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeft, ArrowUpToLine, RefreshCw, Trash2 } from 'lucide-react'
 import { useState, type ChangeEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { CoverImage } from '@/components/CoverImage'
@@ -27,12 +27,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { listEntries } from '@/lib/api/entries'
 import { entriesKey } from '@/lib/api/keys'
+import { compareBacklog } from '@/lib/backlog'
 import { MEDIA_TYPE_LABELS, SOURCE_LABELS, statusLabel } from '@/lib/labels'
 import { pageCountOf, progressFromPages, progressFromPercent } from '@/lib/progress'
 import type { EntryPatch } from '@/lib/status'
 import { ENTRY_STATUSES, type EntryStatus, type EntryWithMedia } from '@/lib/types'
 import {
   useChangeStatus,
+  useMoveInBacklog,
   useRefreshMetadata,
   useRemoveEntry,
   useUpdateEntry,
@@ -93,7 +95,10 @@ export function EntryPage() {
   }
 
   // Keyed by id so the drafts start fresh when moving between entries.
-  return <EntryDetail key={entry.id} entry={entry} />
+  // The whole backlog across types, for the entry's position and move to top/bottom.
+  const backlog = entries.data.filter(({ status }) => status === 'backlog').sort(compareBacklog)
+
+  return <EntryDetail key={entry.id} entry={entry} backlog={backlog} />
 }
 
 function BackLink({ className }: { className?: string }) {
@@ -119,11 +124,13 @@ function BackLink({ className }: { className?: string }) {
   )
 }
 
-function EntryDetail({ entry }: { entry: EntryWithMedia }) {
+function EntryDetail({ entry, backlog }: { entry: EntryWithMedia; backlog: EntryWithMedia[] }) {
   const { media } = entry
   const navigate = useNavigate()
   const update = useUpdateEntry()
   const { changeStatus } = useChangeStatus()
+  const { moveToTop, moveToBottom } = useMoveInBacklog()
+  const rank = backlog.findIndex(({ id }) => id === entry.id)
   const refresh = useRefreshMetadata()
   const [confirmRemove, setConfirmRemove] = useState(false)
   const remove = useRemoveEntry({ onRemoved: () => void navigate('/library', { replace: true }) })
@@ -180,6 +187,35 @@ function EntryDetail({ entry }: { entry: EntryWithMedia }) {
                 ))}
               </SelectContent>
             </Select>
+            {rank !== -1 && (
+              // Icon-only, so the position and both buttons share one line even in a
+              // half-width column; the labels live on as accessible names and tooltips.
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span className="mr-auto">
+                  {rank + 1} of {backlog.length} in your backlog
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Move to top"
+                  title="Move to top"
+                  onClick={() => moveToTop(backlog, entry.id)}
+                  disabled={rank === 0}
+                >
+                  <ArrowUpToLine aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Move to bottom"
+                  title="Move to bottom"
+                  onClick={() => moveToBottom(backlog, entry.id)}
+                  disabled={rank === backlog.length - 1}
+                >
+                  <ArrowDownToLine aria-hidden />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">

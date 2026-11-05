@@ -12,6 +12,7 @@ vi.mock('@/lib/api/entries', () => ({
   listEntries: vi.fn(),
   updateEntry: vi.fn(),
   removeEntry: vi.fn(),
+  setBacklogPositions: vi.fn(),
   nextBacklogPosition: vi.fn(),
 }))
 vi.mock('@/lib/api/search')
@@ -35,6 +36,10 @@ const hobbit = makeEntry(
     details: { page_count: 310 },
   },
 )
+const dune = makeEntry(
+  { id: 'dune', status: 'backlog', backlog_position: 'a1' },
+  { type: 'book', title: 'Dune', source: 'custom', external_id: null, created_by: 'user-1' },
+)
 const custom = makeEntry(
   { id: 'custom', status: 'on_hold' },
   { type: 'game', source: 'custom', external_id: null, title: 'My Own Game', created_by: 'user-1' },
@@ -47,7 +52,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 10, 4, 12))
 
   // A tiny stateful store, so the refetch after a save returns what was saved.
-  let rows = [inception, hobbit, custom]
+  let rows = [inception, hobbit, custom, dune]
   vi.mocked(entriesApi.listEntries).mockImplementation(async () => rows)
   vi.mocked(entriesApi.updateEntry).mockImplementation(async (id, patch) => {
     rows = rows.map((row) => (row.id === id ? { ...row, ...patch } : row))
@@ -234,6 +239,50 @@ describe('EntryPage', () => {
     expect(vi.mocked(entriesApi.removeEntry).mock.calls[0]?.[0]).toMatchObject({ id: 'inception' })
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/library$/))
     expect(toasts.success).toHaveBeenCalledWith('Removed Inception')
+  })
+
+  it("shows a backlog entry's place in the whole backlog", async () => {
+    open(dune)
+    expect(await screen.findByText('2 of 2 in your backlog')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Move to bottom' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Move to top' })).toBeEnabled()
+  })
+
+  it('moves a backlog entry to the top', async () => {
+    const user = open(dune)
+    await user.click(await screen.findByRole('button', { name: 'Move to top' }))
+
+    await waitFor(() => expect(entriesApi.updateEntry).toHaveBeenCalledTimes(1))
+    const [id, patch] = vi.mocked(entriesApi.updateEntry).mock.calls[0]!
+    expect(id).toBe('dune')
+    expect(patch.backlog_position! < 'a0').toBe(true)
+    expect(await screen.findByText('1 of 2 in your backlog')).toBeInTheDocument()
+  })
+
+  it('moves a backlog entry to the bottom', async () => {
+    const user = open(inception)
+    await user.click(await screen.findByRole('button', { name: 'Move to bottom' }))
+
+    await waitFor(() => expect(entriesApi.updateEntry).toHaveBeenCalledTimes(1))
+    const [id, patch] = vi.mocked(entriesApi.updateEntry).mock.calls[0]!
+    expect(id).toBe('inception')
+    expect(patch.backlog_position! > 'a1').toBe(true)
+    expect(await screen.findByText('2 of 2 in your backlog')).toBeInTheDocument()
+  })
+
+  it('shows no backlog position outside the backlog', async () => {
+    open(hobbit)
+    await screen.findByRole('heading', { name: 'The Hobbit' })
+    expect(screen.queryByText(/in your backlog/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Move to top' })).not.toBeInTheDocument()
+  })
+
+  it('places an entry moved into the backlog last straight away', async () => {
+    // The real bottom key comes from a server read; hold it to see the provisional place.
+    vi.mocked(entriesApi.nextBacklogPosition).mockReturnValue(new Promise(() => {}))
+    const user = open(custom)
+    await chooseStatus(user, 'Backlog')
+    expect(await screen.findByText('3 of 3 in your backlog')).toBeInTheDocument()
   })
 
   it('says so when the entry is not in the library', async () => {

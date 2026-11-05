@@ -9,10 +9,66 @@ Tracks build status against [implementation-plan.md](implementation-plan.md). Up
 | 1. Foundation                    | ✅                                 |
 | 2. Search and add                | ✅                                 |
 | 3. Android shell                 | ✅                                 |
-| 4. Library and tracking          | 🟡 Code complete; needs your check |
-| 5. Backlog ordering              | ⬜                                 |
+| 4. Library and tracking          | ✅                                 |
+| 5. Backlog ordering              | 🟡 Code complete; needs your check |
 | 6. TV progress                   | ⬜                                 |
 | 7. Offline read cache and polish | ⬜                                 |
+
+---
+
+## Phase 5: Backlog ordering
+
+_Last updated: 2026-11-05_
+
+### Tasks
+
+| Task                                  | Status | Notes                                                                                                                      |
+| ------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Backlog view                          | ✅     | Library with status **Backlog**: sorted by "Backlog order" by default, with a drag handle on each row                      |
+| dnd-kit: mouse, touch, keyboard       | ✅     | Handle only, `touch-action: none`; touch starts after a 120 ms hold; arrow keys with screen-reader messages                |
+| Fractional index, fewest-row update   | ✅     | `reorderWithin` in `src/lib/backlog.ts`. One row for a move in All; several in one atomic call when a type tab swaps slots |
+| Optimistic reorder with rollback      | ✅     | Same pattern as the Phase 4 updates; a failed save restores the old order with a toast                                     |
+| Per-type tabs as filtered subsequence | ✅     | A type tab reshuffles that type within the slots it already holds; other types never move or get written                   |
+| Move to top / bottom                  | ✅     | On the entry screen, with "N of M in your backlog"                                                                         |
+| Add to top                            | ✅     | Already in the add flow since Phase 2                                                                                      |
+| Unit tests for index generation       | ✅     | Top, bottom, between, 50 inserts into one gap, filtered lists, duplicate keys, C-collation sorting                         |
+
+### Exit criteria
+
+- [ ] Reordering persists across sessions and devices, and the per-type tabs stay consistent with the global order. _Needs your [Phase 5 exit check](setup.md#phase-5-exit-check)._
+
+### Verified
+
+- 161 unit and component tests pass (30 new), including real keyboard drags through dnd-kit: an All-tab move writes one row, a type-tab swap writes both entries in one call and leaves the movie between them in place, and a failed save rolls the order back. A seeded randomized test checks 300 backlogs and moves: the new order is exact, other types are never written, and an All-tab move writes at most one row.
+- 33 RLS tests pass against local Supabase (4 new for `set_backlog_positions`): owner-only, all-or-nothing, rejects a non-backlog entry, not callable anonymously.
+- Fractional keys sort the same in Postgres and JavaScript (existing RLS test; Docker works in WSL now).
+- Lint, typecheck, format check and build are clean.
+
+### Not verified
+
+- **Touch dragging on a real phone.** The plan calls this out as a risk; jsdom can't simulate it. Check scrolling past the handles and the hold-to-drag feel on Android.
+- **No browser click-through** of mouse dragging.
+
+### Bugs found by running it
+
+- **A dropped row jumped before settling.** dnd-kit clears the drag offsets on drop, but the optimistic cache update reaches the list a tick later (TanStack notifies on a timeout), so the row snapped back to its old slot for a frame. The list now shows the drop locally until the cache has it, or the save fails. Regression test added.
+
+- **A type-tab drag jumped the entry to the top of the whole backlog.** With shows at positions 2 and 6, moving the second to the top of the TV tab put it at position 1, because the key only had to sort before the first visible show. Type tabs now keep their entries in the slots they already hold and swap them among those slots. Regression tests added (unit, randomized, component and RLS).
+
+### Decisions and deviations
+
+- **Type-tab reorders can write more than one row (a deviation from the plan's "one row").** Keeping each type in its own slots means a swap changes two rows, and a rotation changes several. Only the rows that need new keys are written: never other types, and a move in All is still one row. Several rows go through one database call, `set_backlog_positions` (new migration), so a reorder can't half-apply.
+- **The backlog view is the library's Backlog filter, not a separate screen.** "Backlog order" is offered, and the default, only when the status filter is Backlog. Other sorts still work there, without handles.
+- **Move keys are computed from the cached list**, so a drag shows at once. Moving into the backlog by changing status still reads the true bottom from the server, but shows a provisional bottom place straight away.
+- **Duplicate keys are handled, not prevented.** Two simultaneous adds can get the same key; a move next to them skips to the first larger key. A unique index would turn that race into a confusing "already in your library" error.
+- **Move to top/bottom lives on the entry screen** rather than in a row menu, to keep rows to one link plus a handle.
+- **Ties sort by date added**, so equal keys still order the same everywhere.
+
+### Your next steps for Phase 5
+
+1. Push the new migration to the hosted project **before** deploying: `pnpm exec supabase db push`. Without it, type-tab swaps fail (moves in All still work).
+2. Deploy `main` and tag `v0.5.0` for the APK.
+3. Walk the [Phase 5 exit check](setup.md#phase-5-exit-check), especially dragging on your phone.
 
 ---
 
@@ -37,7 +93,7 @@ _Last updated: 2026-11-04_
 
 ### Exit criteria
 
-- [ ] The core tracking loop works on web and Android. _Needs your [Phase 4 exit check](setup.md#phase-4-exit-check)._
+- [x] The core tracking loop works on web and Android. _Exit check walked on 2026-11-05._
 
 ### Verified
 
@@ -59,7 +115,7 @@ _Last updated: 2026-11-04_
 - **Only the last in-flight edit refetches**, so rapid edits (e.g. rating and then status) don't briefly undo each other.
 - **Completing doesn't fill the start date.** This follows section 6 ("set `started_on` only if it was already set"), read as: never invent a start date.
 
-### Your next steps for Phase 4
+### Your next steps for Phase 4 (done)
 
 1. Deploy `main` (Cloudflare picks it up) and tag `v0.4.0` for the APK.
 2. Walk the [Phase 4 exit check](setup.md#phase-4-exit-check) and send me anything that looks off.
