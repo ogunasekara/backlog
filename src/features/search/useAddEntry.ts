@@ -16,7 +16,9 @@ export type AddFromSearchInput = {
  * then creates the entry. Re-adding something you already have is not an error —
  * it reports the duplicate so the caller can open the existing entry.
  */
-export function useAddFromSearch(options: { onAdded?: () => void; onDuplicate?: () => void } = {}) {
+export function useAddFromSearch(
+  options: { onAdded?: () => void; onDuplicate?: (entryId: string | null) => void } = {},
+) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -32,9 +34,8 @@ export function useAddFromSearch(options: { onAdded?: () => void; onDuplicate?: 
     },
     onError: (error) => {
       if (error instanceof DuplicateEntryError) {
-        // Phase 4 adds the entry screen; until then, say where it already is.
         toast.info('Already in your library')
-        options.onDuplicate?.()
+        options.onDuplicate?.(error.entryId)
         return
       }
       toast.error(error instanceof Error ? error.message : 'Could not add that item')

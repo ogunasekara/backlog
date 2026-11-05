@@ -1,5 +1,6 @@
 import { generateKeyBetween } from 'fractional-indexing'
 import { supabase } from '@/lib/supabase'
+import type { EntryPatch } from '@/lib/status'
 import type { Entry, EntryStatus, EntryWithMedia, Media, MediaType } from '@/lib/types'
 
 /** Postgres unique_violation: one entry per user per media item. */
@@ -112,4 +113,27 @@ export async function listEntries(): Promise<EntryWithMedia[]> {
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as EntryWithMedia[]
+}
+
+export async function updateEntry(id: string, patch: EntryPatch): Promise<Entry> {
+  const { data, error } = await supabase
+    .from('entries')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as Entry
+}
+
+/**
+ * Removes an entry. A custom item exists only for its entry, so its media row goes too
+ * (the entry follows by cascade); catalog rows stay for anyone else who has them.
+ */
+export async function removeEntry(entry: EntryWithMedia): Promise<void> {
+  const { error } =
+    entry.media.source === 'custom'
+      ? await supabase.from('media').delete().eq('id', entry.media.id)
+      : await supabase.from('entries').delete().eq('id', entry.id)
+  if (error) throw error
 }

@@ -142,7 +142,7 @@ describe('SearchPage', () => {
     )
   })
 
-  it('reports a duplicate instead of failing', async () => {
+  it('opens the existing entry for a duplicate instead of failing', async () => {
     vi.mocked(searchApi.searchMedia).mockResolvedValue({ results: [inception] })
     vi.mocked(entriesApi.addEntry).mockRejectedValue(new DuplicateEntryError('entry-9'))
     const user = await searchFor('inception')
@@ -152,6 +152,7 @@ describe('SearchPage', () => {
 
     await waitFor(() => expect(toasts.info).toHaveBeenCalledWith('Already in your library'))
     expect(toasts.error).not.toHaveBeenCalled()
+    expect(await screen.findByTestId('location')).toHaveTextContent('/library/entry-9')
   })
 
   it('surfaces the error when adding fails', async () => {

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router'
 import { CoverImage } from '@/components/CoverImage'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,7 +30,15 @@ type Props = {
 export function AddItemDialog({ result, onClose }: Props) {
   const [status, setStatus] = useState<EntryStatus>('backlog')
   const [addToTop, setAddToTop] = useState(false)
-  const add = useAddFromSearch({ onAdded: onClose, onDuplicate: onClose })
+  const navigate = useNavigate()
+  const add = useAddFromSearch({
+    onAdded: onClose,
+    // Re-adding something you already have opens the entry you have.
+    onDuplicate: (entryId) => {
+      onClose()
+      if (entryId) void navigate(`/library/${entryId}`)
+    },
+  })
 
   function onSubmit(event: FormEvent) {
     event.preventDefault()

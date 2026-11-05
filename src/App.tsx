@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { AppShell } from '@/components/AppShell'
 import { useAuth } from '@/features/auth/auth-context'
 import { SignInPage } from '@/features/auth/SignInPage'
+import { EntryPage } from '@/features/library/EntryPage'
 import { LibraryPage } from '@/features/library/LibraryPage'
 import { SearchPage } from '@/features/search/SearchPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
@@ -23,6 +24,7 @@ export default function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/library" element={<LibraryPage />} />
+        <Route path="/library/:entryId" element={<EntryPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/library" replace />} />

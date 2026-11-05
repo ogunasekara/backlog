@@ -1,68 +1,191 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router'
+import { Plus } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router'
 import { CoverImage } from '@/components/CoverImage'
+import { StarDisplay } from '@/components/StarRating'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEntries } from '@/lib/api/entries'
 import { entriesKey } from '@/lib/api/keys'
-import { MEDIA_TYPE_LABELS, statusLabel } from '@/lib/labels'
+import { MEDIA_TYPE_LABELS, SCOPE_LABELS, statusLabel } from '@/lib/labels'
+import { ENTRY_STATUSES, type EntryWithMedia, type SearchScope } from '@/lib/types'
+import {
+  applyLibraryView,
+  LIBRARY_SORTS,
+  parseLibraryView,
+  SORT_LABELS,
+  type LibraryView,
+} from './filters'
 
-/**
- * A plain list of everything added, newest first. Phase 4 replaces this with the
- * real library screen (type tabs, status filters, sorting and the entry detail).
- */
+const TABS: SearchScope[] = ['all', 'movie', 'tv', 'book', 'game']
+const ALL_STATUSES = 'any'
+
 export function LibraryPage() {
   const entries = useQuery({ queryKey: entriesKey, queryFn: listEntries })
 
+  // The view lives in the URL, so returning from an entry keeps the tab and filters.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const view = parseLibraryView(searchParams)
+  const tab: SearchScope = view.type ?? 'all'
+
+  function setParam(name: keyof LibraryView, value: string | null) {
+    setSearchParams(
+      (params) => {
+        if (value === null) params.delete(name)
+        else params.set(name, value)
+        return params
+      },
+      { replace: true },
+    )
+  }
+
+  const visible = entries.data ? applyLibraryView(entries.data, view) : []
+  const searchLink = view.type ? `/search?type=${view.type}` : '/search'
+
   return (
-    <section className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Library</h1>
+    <section className="flex flex-col gap-6 pb-16">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Library</h1>
+        {/* Floats bottom right, above the tab bar on mobile, so it's always within reach.
+            The section's bottom padding keeps it off the last row. */}
+        <Button
+          asChild
+          className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 h-12 rounded-full shadow-lg has-[>svg]:px-5 md:right-8 md:bottom-8"
+        >
+          <Link to={searchLink}>
+            <Plus className="size-4" aria-hidden />
+            Add
+          </Link>
+        </Button>
+      </div>
 
-      {entries.isPending && (
-        <div className="flex flex-col gap-3">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+      <Tabs value={tab} onValueChange={(next) => setParam('type', next === 'all' ? null : next)}>
+        <TabsList className="w-full sm:w-fit">
+          {TABS.map((value) => (
+            <TabsTrigger key={value} value={value}>
+              {SCOPE_LABELS[value]}
+            </TabsTrigger>
           ))}
-        </div>
-      )}
+        </TabsList>
 
-      {entries.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {entries.error instanceof Error ? entries.error.message : 'Could not load your library'}
-        </p>
-      )}
+        <TabsContent value={tab} className="flex flex-col gap-4 pt-2">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:items-end">
+            <div className="flex flex-col gap-2 sm:w-44">
+              <Label htmlFor="status-filter">Status</Label>
+              <Select
+                value={view.status ?? ALL_STATUSES}
+                onValueChange={(next) => setParam('status', next === ALL_STATUSES ? null : next)}
+              >
+                <SelectTrigger id="status-filter" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_STATUSES}>Any status</SelectItem>
+                  {ENTRY_STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {statusLabel(value, view.type ?? undefined)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      {entries.data?.length === 0 && (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-muted-foreground">Your library is empty.</p>
-          <Button asChild>
-            <Link to="/search">Find something to add</Link>
-          </Button>
-        </div>
-      )}
+            <div className="flex flex-col gap-2 sm:w-44">
+              <Label htmlFor="sort">Sort by</Label>
+              <Select
+                value={view.sort}
+                onValueChange={(next) => setParam('sort', next === 'added' ? null : next)}
+              >
+                <SelectTrigger id="sort" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LIBRARY_SORTS.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {SORT_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      {(entries.data?.length ?? 0) > 0 && (
-        <ul className="flex flex-col gap-3">
-          {entries.data?.map((entry) => (
-            <li key={entry.id} className="flex items-center gap-3 rounded-lg border p-3">
-              <CoverImage
-                title={entry.media.title}
-                url={entry.media.cover_url}
-                className="w-12 shrink-0"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{entry.media.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {MEDIA_TYPE_LABELS[entry.media.type]}
-                  {entry.media.year ? ` · ${entry.media.year}` : ''}
-                </p>
-              </div>
-              <Badge variant="secondary">{statusLabel(entry.status, entry.media.type)}</Badge>
-            </li>
-          ))}
-        </ul>
-      )}
+          {entries.isPending && (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          )}
+
+          {entries.isError && (
+            <p role="alert" className="text-sm text-destructive">
+              {entries.error instanceof Error
+                ? entries.error.message
+                : 'Could not load your library'}
+            </p>
+          )}
+
+          {entries.data?.length === 0 && (
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-muted-foreground">Your library is empty.</p>
+              <Button asChild>
+                <Link to={searchLink}>Find something to add</Link>
+              </Button>
+            </div>
+          )}
+
+          {(entries.data?.length ?? 0) > 0 && visible.length === 0 && (
+            <p className="text-muted-foreground">Nothing here matches these filters.</p>
+          )}
+
+          {visible.length > 0 && (
+            <ul className="flex flex-col gap-3">
+              {visible.map((entry) => (
+                <li key={entry.id}>
+                  <EntryRow entry={entry} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+      </Tabs>
     </section>
+  )
+}
+
+function EntryRow({ entry }: { entry: EntryWithMedia }) {
+  const { media } = entry
+  return (
+    <Link
+      to={`/library/${entry.id}`}
+      className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      <CoverImage title={media.title} url={media.cover_url} className="w-12 shrink-0" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="truncate font-medium">{media.title}</p>
+        <p className="text-sm text-muted-foreground">
+          {MEDIA_TYPE_LABELS[media.type]}
+          {media.year ? ` · ${media.year}` : ''}
+          {media.type === 'book' && entry.progress_percent !== null
+            ? ` · ${entry.progress_percent}%`
+            : ''}
+        </p>
+        {entry.rating !== null && <StarDisplay rating={entry.rating} />}
+      </div>
+      <Badge variant="secondary" className="shrink-0">
+        {statusLabel(entry.status, media.type)}
+      </Badge>
+    </Link>
   )
 }

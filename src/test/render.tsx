@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, type RenderOptions } from '@testing-library/react'
 import type { ReactElement, ReactNode } from 'react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
+import { LocationProbe } from './LocationProbe'
 
 /** Retries off and no caching between tests, so failures surface immediately. */
 function testQueryClient() {
@@ -13,13 +14,30 @@ function testQueryClient() {
   })
 }
 
-type Options = Omit<RenderOptions, 'wrapper'> & { route?: string }
+type Options = Omit<RenderOptions, 'wrapper'> & {
+  route?: string
+  /** Route pattern the UI is mounted at, for components that read URL params. */
+  path?: string
+}
 
-export function renderWithProviders(ui: ReactElement, { route = '/', ...options }: Options = {}) {
+export function renderWithProviders(
+  ui: ReactElement,
+  { route = '/', path, ...options }: Options = {},
+) {
   const queryClient = testQueryClient()
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+      <MemoryRouter initialEntries={[route]}>
+        {path ? (
+          <Routes>
+            <Route path={path} element={children} />
+            <Route path="*" element={null} />
+          </Routes>
+        ) : (
+          children
+        )}
+        <LocationProbe />
+      </MemoryRouter>
     </QueryClientProvider>
   )
   return { queryClient, ...render(ui, { wrapper: Wrapper, ...options }) }

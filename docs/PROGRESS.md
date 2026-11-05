@@ -4,15 +4,65 @@ Tracks build status against [implementation-plan.md](implementation-plan.md). Up
 
 **Legend:** ✅ done · 🟡 done in repo, needs a manual step · ⬜ not started
 
-| Phase                            | Status                                    |
-| -------------------------------- | ----------------------------------------- |
-| 1. Foundation                    | ✅                                        |
-| 2. Search and add                | ✅                                        |
-| 3. Android shell                 | 🟡 Code complete; needs your manual setup |
-| 4. Library and tracking          | ⬜                                        |
-| 5. Backlog ordering              | ⬜                                        |
-| 6. TV progress                   | ⬜                                        |
-| 7. Offline read cache and polish | ⬜                                        |
+| Phase                            | Status                             |
+| -------------------------------- | ---------------------------------- |
+| 1. Foundation                    | ✅                                 |
+| 2. Search and add                | ✅                                 |
+| 3. Android shell                 | ✅                                 |
+| 4. Library and tracking          | 🟡 Code complete; needs your check |
+| 5. Backlog ordering              | ⬜                                 |
+| 6. TV progress                   | ⬜                                 |
+| 7. Offline read cache and polish | ⬜                                 |
+
+---
+
+## Phase 4: Library and tracking
+
+_Last updated: 2026-11-04_
+
+### Tasks
+
+| Task                                    | Status | Notes                                                                                         |
+| --------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| Library tabs, status filter, sorting    | ✅     | All / Movies / TV / Books / Games; sort by date added, title, rating. View lives in the URL   |
+| Entry detail screen                     | ✅     | `/library/:entryId`: status, rating, dates, notes, book progress, refresh, remove             |
+| Status labels per type                  | ✅     | Watching / Reading / Playing, in the entry, the list badges and a type tab's status filter    |
+| Star rating (half-steps → 1-10)         | ✅     | Native radio inputs, so arrow keys work; hover preview; "Clear rating"                        |
+| Status-transition logic with unit tests | ✅     | `src/lib/status.ts`, pure and tested against every row of section 6                           |
+| Editable dates                          | ✅     | Saved once the date is complete; clearing saves `null`                                        |
+| Book progress (pages or percent)        | ✅     | Pages derive the percent (and vice versa) when the page count is known; `src/lib/progress.ts` |
+| Refresh metadata                        | ✅     | Catalog items only, through the existing `details` function                                   |
+| Optimistic updates                      | ✅     | Patches the cached library at once, rolls back with a toast on failure                        |
+| Duplicate add opens the existing entry  | ✅     | Closes the Phase 2 gap                                                                        |
+
+### Exit criteria
+
+- [ ] The core tracking loop works on web and Android. _Needs your [Phase 4 exit check](setup.md#phase-4-exit-check)._
+
+### Verified
+
+- 131 unit and component tests pass (54 new): status transitions, rating mapping, book progress, filter and sort, and the library and entry screens (optimistic status change, rollback on a failed save, half-star rating, notes on blur, date saving, page → percent, refresh, remove, duplicate → entry).
+- Lint, typecheck, format check and build are clean.
+
+### Not verified
+
+- **No browser or device click-through.** The screens are covered by component tests against mocked APIs only.
+- **RLS tests were not re-run.** Docker isn't available in this WSL distro. Nothing in the schema or policies changed, and CI runs them on the PR.
+
+### Decisions and deviations
+
+- **No migration.** Every column Phase 4 needs was already in the Phase 1 schema.
+- **Remove from library added.** Not in the plan, but a tracker you can't delete from is awkward. Removing a custom item also deletes its media row (the entry follows by cascade), so no orphan rows are left.
+- **The entry screen reads from the cached library list** rather than its own query, so an edit shows up in both places at once and optimistic updates have one cache to patch. That's fine at one user's library size.
+- **Status changes into the backlog go to the bottom.** "Add to top" stays on the add flow; move to top/bottom is Phase 5.
+- **Notes and progress save on blur; dates save once complete.** A typed year passes through values like 0002 and 0202, so years before 1900 count as unfinished and aren't saved.
+- **Only the last in-flight edit refetches**, so rapid edits (e.g. rating and then status) don't briefly undo each other.
+- **Completing doesn't fill the start date.** This follows section 6 ("set `started_on` only if it was already set"), read as: never invent a start date.
+
+### Your next steps for Phase 4
+
+1. Deploy `main` (Cloudflare picks it up) and tag `v0.4.0` for the APK.
+2. Walk the [Phase 4 exit check](setup.md#phase-4-exit-check) and send me anything that looks off.
 
 ---
 
@@ -32,11 +82,11 @@ _Last updated: 2026-10-10_
 | Custom SMTP + hosted code templates        | 🟡     | Yours: Gmail app password, then the two templates ([setup.md step 6](setup.md#6-email-sign-in-codes-phase-3))                      |
 | Signing keystore, backed up offline        | 🟡     | Yours to generate and back up ([setup.md step 7](setup.md#7-android-phase-3))                                                      |
 | `android-release.yml`                      | ✅     | Tag `vX.Y.Z` → signed APK on a GitHub Release. Manual run = dry run with the APK as an artifact                                    |
-| Sideload and verify sign-in, search, add   | ⬜     | Needs the steps above                                                                                                              |
+| Sideload and verify sign-in, search, add   | ✅     | Released as `v0.3.0` and `v0.3.1`                                                                                                  |
 
 ### Exit criteria
 
-- [ ] A tagged release produces an APK you install from GitHub and use to add an item.
+- [x] A tagged release produces an APK you install from GitHub and use to add an item.
 
 ### Verified
 
@@ -58,7 +108,7 @@ _Last updated: 2026-10-10_
 - **Version code comes from the tag**: `v1.2.3` → `10203`, so minor and patch must stay under 100. Dry runs use version code 1 and are not meant for installing.
 - **No Android build in `ci.yml`.** A Gradle build adds several minutes to every PR; the release workflow's dry run covers it when native code changes.
 
-### Your next steps for Phase 3
+### Your next steps for Phase 3 (done)
 
 1. Custom SMTP and the code templates on the hosted project ([setup.md step 6](setup.md#6-email-sign-in-codes-phase-3)), then deploy `main` and confirm email codes work on the site.
 2. Generate the keystore, **back it up offline**, and create the Android OAuth client ([setup.md step 7](setup.md#7-android-phase-3)).

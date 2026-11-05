@@ -179,3 +179,16 @@ Needs steps 6 and 7 done.
 3. Tag `v0.3.0`; the release has `backlog-v0.3.0.apk` attached.
 4. Install it on your phone. Sign in with Google (account picker, no browser) and with an email code; search, then add an item.
 5. Sign out and back in; quit and reopen the app and you should still be signed in.
+
+### Phase 4 exit check
+
+No new setup: no migration and no new secrets. Deploy `main`, then tag `v0.4.0` for the APK.
+
+1. In Library, switch between the type tabs, filter by status, and sort by title, date added and rating. Open an entry, go back, and the tab and filters are still set.
+2. Open a backlog item and set it to Watching/Reading/Playing. The start date fills in with today. Mark it Completed and the finish date fills in; the start date stays as it was.
+3. Go straight from Backlog to Completed: only the finish date fills in.
+4. Rate with half stars (try 3.5), clear the rating, edit both dates, and write a note (it saves when you leave the field). Reload and everything is still there.
+5. On a book, enter a page; the percent follows when the source gave a page count.
+6. Tap **Refresh metadata** on a catalog item; tap **Remove** on a test item.
+7. In Search, add something you already have. It opens the existing entry.
+8. Repeat 2 and 4 in the Android app.
