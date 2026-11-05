@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { searchKey } from '@/lib/api/keys'
 import { searchMedia } from '@/lib/api/search'
 import { MEDIA_TYPE_LABELS, SCOPE_LABELS } from '@/lib/labels'
+import { useOnline } from '@/lib/online'
 import type { SearchResult, SearchScope } from '@/lib/types'
 import { AddItemDialog } from './AddItemDialog'
 import { CustomItemDialog } from './CustomItemDialog'
@@ -38,6 +39,7 @@ export function SearchPage() {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<SearchResult | null>(null)
   const [customOpen, setCustomOpen] = useState(false)
+  const online = useOnline()
 
   const search = useQuery({
     queryKey: searchKey(scope, query),
@@ -67,7 +69,7 @@ export function SearchPage() {
     <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Search</h1>
-        <Button variant="outline" onClick={() => setCustomOpen(true)}>
+        <Button variant="outline" onClick={() => setCustomOpen(true)} disabled={!online}>
           <Plus className="size-4" aria-hidden />
           Custom item
         </Button>
@@ -101,11 +103,17 @@ export function SearchPage() {
           />
         </div>
 
-        <Button type="submit" disabled={!draft.trim() || search.isFetching}>
+        <Button type="submit" disabled={!online || !draft.trim() || search.isFetching}>
           <SearchIcon className="size-4" aria-hidden />
           {search.isFetching ? 'Searching…' : 'Search'}
         </Button>
       </form>
+
+      {!online && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Searching and adding need a connection.
+        </p>
+      )}
 
       {search.isFetching && <ResultSkeletons />}
 
@@ -136,7 +144,7 @@ export function SearchPage() {
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {search.data?.results.map((result) => (
             <li key={`${result.source}-${result.type}-${result.externalId}`}>
-              <ResultCard result={result} onAdd={() => setSelected(result)} />
+              <ResultCard result={result} onAdd={() => setSelected(result)} disabled={!online} />
             </li>
           ))}
         </ul>
@@ -148,7 +156,15 @@ export function SearchPage() {
   )
 }
 
-function ResultCard({ result, onAdd }: { result: SearchResult; onAdd: () => void }) {
+function ResultCard({
+  result,
+  onAdd,
+  disabled,
+}: {
+  result: SearchResult
+  onAdd: () => void
+  disabled: boolean
+}) {
   return (
     <div className="flex h-full flex-col gap-2">
       <CoverImage title={result.title} url={result.coverUrl} />
@@ -161,7 +177,7 @@ function ResultCard({ result, onAdd }: { result: SearchResult; onAdd: () => void
         </div>
         {result.year && <p className="text-xs text-muted-foreground">{result.year}</p>}
       </div>
-      <Button size="sm" variant="secondary" onClick={onAdd}>
+      <Button size="sm" variant="secondary" onClick={onAdd} disabled={disabled}>
         Add
       </Button>
     </div>

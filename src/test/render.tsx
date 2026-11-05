@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { LocationProbe } from './LocationProbe'
 
 /** Retries off and no caching between tests, so failures surface immediately. */
-function testQueryClient() {
+export function testQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0, staleTime: 0 },
@@ -18,13 +18,14 @@ type Options = Omit<RenderOptions, 'wrapper'> & {
   route?: string
   /** Route pattern the UI is mounted at, for components that read URL params. */
   path?: string
+  /** A client set up beforehand, e.g. with a cached library to open offline. */
+  queryClient?: QueryClient
 }
 
 export function renderWithProviders(
   ui: ReactElement,
-  { route = '/', path, ...options }: Options = {},
+  { route = '/', path, queryClient = testQueryClient(), ...options }: Options = {},
 ) {
-  const queryClient = testQueryClient()
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>

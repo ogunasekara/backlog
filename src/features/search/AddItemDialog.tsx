@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { MEDIA_TYPE_LABELS, statusLabel } from '@/lib/labels'
+import { useOnline } from '@/lib/online'
 import { ENTRY_STATUSES, type EntryStatus, type SearchResult } from '@/lib/types'
 import { useAddFromSearch } from './useAddEntry'
 
@@ -31,6 +32,7 @@ export function AddItemDialog({ result, onClose }: Props) {
   const [status, setStatus] = useState<EntryStatus>('backlog')
   const [addToTop, setAddToTop] = useState(false)
   const navigate = useNavigate()
+  const online = useOnline()
   const add = useAddFromSearch({
     onAdded: onClose,
     // Re-adding something you already have opens the entry you have.
@@ -107,7 +109,7 @@ export function AddItemDialog({ result, onClose }: Props) {
               <Button type="button" variant="ghost" onClick={onClose} disabled={add.isPending}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={add.isPending}>
+              <Button type="submit" disabled={!online || add.isPending}>
                 {add.isPending ? 'Adding…' : 'Add'}
               </Button>
             </DialogFooter>

@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest'
+import { onlineManager } from '@tanstack/react-query'
 
 // jsdom implements neither the Pointer Capture API nor scrollIntoView, both of which
 // Radix UI primitives (Select, Dialog) call. Without these stubs the components throw
@@ -10,3 +11,6 @@ if (!Element.prototype.hasPointerCapture) {
 }
 
 Element.prototype.scrollIntoView ??= () => {}
+
+// Tests that go offline flip TanStack's shared online state; put it back for the next.
+afterEach(() => onlineManager.setOnline(true))

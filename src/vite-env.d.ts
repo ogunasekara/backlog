@@ -7,3 +7,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+/** Set at build time in vite.config.ts: the release tag or commit, and the commit. */
+declare const __APP_VERSION__: string
+declare const __APP_COMMIT__: string

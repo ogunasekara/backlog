@@ -19,5 +19,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vitest.rls.config.ts", "capacitor.config.ts", "supabase/tests"]
+  "include": [
+    "vite.config.ts",
+    "pwa-assets.config.ts",
+    "vitest.rls.config.ts",
+    "capacitor.config.ts",
+    "supabase/tests"
+  ]
 }

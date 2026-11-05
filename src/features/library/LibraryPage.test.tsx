@@ -1,4 +1,5 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { onlineManager } from '@tanstack/react-query'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as entriesApi from '@/lib/api/entries'
@@ -60,6 +61,29 @@ describe('LibraryPage', () => {
 
     expect(await screen.findByRole('link', { name: /Watching/ })).toHaveTextContent('S2 E5')
     expect(screen.getByRole('link', { name: /Fresh/ })).not.toHaveTextContent(/S\d+ E\d+/)
+  })
+
+  it('offers to try again when the library fails to load', async () => {
+    vi.mocked(entriesApi.listEntries).mockRejectedValueOnce(new Error('Network down'))
+    const user = userEvent.setup()
+    renderWithProviders(<LibraryPage />, { route: '/library' })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Network down')
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByText('Inception')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('keeps showing the cached library when a refresh fails', async () => {
+    const { queryClient } = renderWithProviders(<LibraryPage />, { route: '/library' })
+    await screen.findByText('Inception')
+
+    vi.mocked(entriesApi.listEntries).mockRejectedValueOnce(new Error('Network down'))
+    await act(() => queryClient.refetchQueries())
+
+    expect(screen.getByText('Inception')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('links each row to its entry', async () => {
@@ -186,6 +210,20 @@ describe('LibraryPage backlog order', () => {
     renderWithProviders(<LibraryPage />, { route: '/library' })
     await screen.findByText('First')
     expect(handles()).toEqual([])
+  })
+
+  it('keeps the backlog order but drops the handles while offline', async () => {
+    renderWithProviders(<LibraryPage />, { route: '/library?status=backlog' })
+    await screen.findByText('First')
+
+    act(() => onlineManager.setOnline(false))
+
+    expect(handles()).toEqual([])
+    expect(rowTitles()).toEqual(['First', 'Second', 'Third'])
+    expect(screen.getByText('Reordering needs a connection.')).toBeInTheDocument()
+
+    act(() => onlineManager.setOnline(true))
+    expect(handles()).toHaveLength(3)
   })
 
   it('reorders with the keyboard and writes only the moved entry', async () => {

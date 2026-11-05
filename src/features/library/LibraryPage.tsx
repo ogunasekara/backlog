@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { LoadError } from '@/components/LoadError'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -13,9 +14,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEntries } from '@/lib/api/entries'
-import { compareBacklog } from '@/lib/backlog'
 import { entriesKey } from '@/lib/api/keys'
+import { compareBacklog } from '@/lib/backlog'
 import { SCOPE_LABELS, statusLabel } from '@/lib/labels'
+import { useOnline } from '@/lib/online'
 import { ENTRY_STATUSES, type SearchScope } from '@/lib/types'
 import { BacklogList } from './BacklogList'
 import { EntryRow } from './EntryRow'
@@ -52,8 +54,11 @@ export function LibraryPage() {
 
   const visible = entries.data ? applyLibraryView(entries.data, view) : []
   const searchLink = view.type ? `/search?type=${view.type}` : '/search'
-  // Dragging only makes sense when the list shows the backlog in its own order.
-  const reorderable = view.status === 'backlog' && view.sort === 'position'
+  // Dragging only makes sense when the list shows the backlog in its own order, and
+  // saving the new order needs a connection.
+  const online = useOnline()
+  const backlogOrder = view.status === 'backlog' && view.sort === 'position'
+  const reorderable = backlogOrder && online
   const backlog = reorderable
     ? (entries.data ?? []).filter(({ status }) => status === 'backlog').sort(compareBacklog)
     : []
@@ -136,12 +141,16 @@ export function LibraryPage() {
             </div>
           )}
 
-          {entries.isError && (
-            <p role="alert" className="text-sm text-destructive">
-              {entries.error instanceof Error
-                ? entries.error.message
-                : 'Could not load your library'}
-            </p>
+          {/* A failed refresh with a cached library keeps showing the cached one. */}
+          {entries.isError && !entries.data && (
+            <LoadError
+              message={
+                entries.error instanceof Error
+                  ? entries.error.message
+                  : 'Could not load your library'
+              }
+              onRetry={() => void entries.refetch()}
+            />
           )}
 
           {entries.data?.length === 0 && (
@@ -162,6 +171,10 @@ export function LibraryPage() {
               <p className="-mt-1 text-sm text-muted-foreground">Drag the handle to reorder.</p>
               <BacklogList backlog={backlog} type={view.type} />
             </>
+          )}
+
+          {visible.length > 0 && backlogOrder && !online && (
+            <p className="-mt-1 text-sm text-muted-foreground">Reordering needs a connection.</p>
           )}
 
           {visible.length > 0 && !reorderable && (

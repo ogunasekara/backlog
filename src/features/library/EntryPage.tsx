@@ -3,6 +3,7 @@ import { ArrowDownToLine, ArrowLeft, ArrowUpToLine, RefreshCw, Trash2 } from 'lu
 import { useState, type ChangeEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { CoverImage } from '@/components/CoverImage'
+import { LoadError } from '@/components/LoadError'
 import { StarRatingInput } from '@/components/StarRating'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -28,6 +29,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { listEntries } from '@/lib/api/entries'
 import { entriesKey } from '@/lib/api/keys'
 import { compareBacklog } from '@/lib/backlog'
+import { useOnline } from '@/lib/online'
 import { MEDIA_TYPE_LABELS, SOURCE_LABELS, statusLabel } from '@/lib/labels'
 import { pageCountOf, progressFromPages, progressFromPercent } from '@/lib/progress'
 import type { EntryPatch } from '@/lib/status'
@@ -78,15 +80,19 @@ export function EntryPage() {
     )
   }
 
-  if (entries.isError) {
+  // A failed refresh with a cached library still shows the cached entry.
+  if (entries.isError && !entries.data) {
     return (
-      <p role="alert" className="text-sm text-destructive">
-        {entries.error instanceof Error ? entries.error.message : 'Could not load this item'}
-      </p>
+      <LoadError
+        message={
+          entries.error instanceof Error ? entries.error.message : 'Could not load this item'
+        }
+        onRetry={() => void entries.refetch()}
+      />
     )
   }
 
-  if (!entry) {
+  if (!entries.data || !entry) {
     return (
       <section className="flex flex-col items-start gap-3">
         <BackLink className="-ml-2.5 text-muted-foreground" />
@@ -135,6 +141,9 @@ function EntryDetail({ entry, backlog }: { entry: EntryWithMedia; backlog: Entry
   const refresh = useRefreshMetadata()
   const [confirmRemove, setConfirmRemove] = useState(false)
   const remove = useRemoveEntry({ onRemoved: () => void navigate('/library', { replace: true }) })
+  // Writes need a connection. The fieldset disables every native control inside it;
+  // the Radix select and the buttons outside it take the flag themselves.
+  const offline = !useOnline()
 
   function save(patch: EntryPatch) {
     update.mutate({ id: entry.id, patch })
@@ -170,82 +179,90 @@ function EntryDetail({ entry, backlog }: { entry: EntryWithMedia; backlog: Entry
 
       <Card className="py-5">
         {/* Two columns from sm up: Status | Rating, then Started | Finished. */}
-        <CardContent className="grid gap-x-3 gap-y-5 px-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="entry-status">Status</Label>
-            <Select
-              value={entry.status}
-              onValueChange={(next) => changeStatus(entry, next as EntryStatus)}
-            >
-              <SelectTrigger id="entry-status" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ENTRY_STATUSES.map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {statusLabel(value, media.type)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {rank !== -1 && (
-              // Icon-only, so the position and both buttons share one line even in a
-              // half-width column; the labels live on as accessible names and tooltips.
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span className="mr-auto">
-                  {rank + 1} of {backlog.length} in your backlog
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label="Move to top"
-                  title="Move to top"
-                  onClick={() => moveToTop(backlog, entry.id)}
-                  disabled={rank === 0}
-                >
-                  <ArrowUpToLine aria-hidden />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label="Move to bottom"
-                  title="Move to bottom"
-                  onClick={() => moveToBottom(backlog, entry.id)}
-                  disabled={rank === backlog.length - 1}
-                >
-                  <ArrowDownToLine aria-hidden />
-                </Button>
-              </div>
-            )}
-          </div>
+        <CardContent className="px-5">
+          {/* min-w-0: a fieldset is at least as wide as its content by default. */}
+          <fieldset disabled={offline} className="grid min-w-0 gap-x-3 gap-y-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="entry-status">Status</Label>
+              <Select
+                value={entry.status}
+                disabled={offline}
+                onValueChange={(next) => changeStatus(entry, next as EntryStatus)}
+              >
+                <SelectTrigger id="entry-status" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ENTRY_STATUSES.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {statusLabel(value, media.type)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {rank !== -1 && (
+                // Icon-only, so the position and both buttons share one line even in a
+                // half-width column; the labels live on as accessible names and tooltips.
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="mr-auto">
+                    {rank + 1} of {backlog.length} in your backlog
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Move to top"
+                    title="Move to top"
+                    onClick={() => moveToTop(backlog, entry.id)}
+                    disabled={rank === 0}
+                  >
+                    <ArrowUpToLine aria-hidden />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Move to bottom"
+                    title="Move to bottom"
+                    onClick={() => moveToBottom(backlog, entry.id)}
+                    disabled={rank === backlog.length - 1}
+                  >
+                    <ArrowDownToLine aria-hidden />
+                  </Button>
+                </div>
+              )}
+            </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="text-sm leading-none font-medium">Rating</span>
-            <StarRatingInput rating={entry.rating} onChange={(rating) => save({ rating })} />
-          </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm leading-none font-medium">Rating</span>
+              <StarRatingInput
+                rating={entry.rating}
+                onChange={(rating) => save({ rating })}
+                disabled={offline}
+              />
+            </div>
 
-          {/* Paired on mobile too; from sm up the dates join the outer grid. */}
-          <div className="grid grid-cols-2 gap-3 sm:contents">
-            <DateField
-              id="started-on"
-              label="Started"
-              value={entry.started_on}
-              onSave={(started_on) => save({ started_on })}
-            />
-            <DateField
-              id="finished-on"
-              label="Finished"
-              value={entry.finished_on}
-              onSave={(finished_on) => save({ finished_on })}
-            />
-          </div>
+            {/* Paired on mobile too; from sm up the dates join the outer grid. */}
+            <div className="grid grid-cols-2 gap-3 sm:contents">
+              <DateField
+                id="started-on"
+                label="Started"
+                value={entry.started_on}
+                onSave={(started_on) => save({ started_on })}
+              />
+              <DateField
+                id="finished-on"
+                label="Finished"
+                value={entry.finished_on}
+                onSave={(finished_on) => save({ finished_on })}
+              />
+            </div>
 
-          {media.type === 'book' && <BookProgressFields entry={entry} onSave={save} />}
-          {media.type === 'tv' && <TvProgress entry={entry} onSave={save} />}
+            {media.type === 'book' && <BookProgressFields entry={entry} onSave={save} />}
+            {media.type === 'tv' && <TvProgress entry={entry} onSave={save} />}
 
-          <div className="sm:col-span-2">
-            <NotesField value={entry.notes} onSave={(notes) => save({ notes })} />
-          </div>
+            <div className="sm:col-span-2">
+              <NotesField value={entry.notes} onSave={(notes) => save({ notes })} />
+            </div>
+          </fieldset>
         </CardContent>
       </Card>
 
@@ -257,7 +274,7 @@ function EntryDetail({ entry, backlog }: { entry: EntryWithMedia; backlog: Entry
               size="sm"
               className="-ml-2.5"
               onClick={() => refresh.mutate(entry)}
-              disabled={refresh.isPending}
+              disabled={offline || refresh.isPending}
             >
               <RefreshCw aria-hidden />
               {refresh.isPending ? 'Refreshing…' : 'Refresh metadata'}
@@ -273,6 +290,7 @@ function EntryDetail({ entry, backlog }: { entry: EntryWithMedia; backlog: Entry
           size="sm"
           className="ml-auto text-destructive hover:text-destructive"
           onClick={() => setConfirmRemove(true)}
+          disabled={offline}
         >
           <Trash2 aria-hidden />
           Remove

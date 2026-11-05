@@ -41,3 +41,8 @@ supabase/functions/.env
 # Android signing keys (back these up offline; never commit)
 *.jks
 *.keystore
+
+# Playwright
+/e2e/.auth
+/test-results
+/playwright-report

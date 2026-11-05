@@ -89,6 +89,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+        env:
+          # Shown in Settings; see vite.config.ts.
+          APP_VERSION: v${{ steps.version.outputs.name }}
       - run: pnpm exec cap sync android
 
       - name: Restore the signing keystore

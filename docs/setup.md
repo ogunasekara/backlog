@@ -20,13 +20,23 @@ pnpm dev                      # http://localhost:5173
 
 ### Checks
 
-| Command             | What it runs                                                                              |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| `pnpm lint`         | ESLint                                                                                    |
-| `pnpm format:check` | Prettier                                                                                  |
-| `pnpm typecheck`    | TypeScript                                                                                |
-| `pnpm test`         | Vitest unit/component tests                                                               |
-| `pnpm test:rls`     | RLS, allow-list and backlog-ordering tests against local Supabase (needs `pnpm db:start`) |
+| Command             | What it runs                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm lint`         | ESLint                                                                                     |
+| `pnpm format:check` | Prettier                                                                                   |
+| `pnpm typecheck`    | TypeScript                                                                                 |
+| `pnpm test`         | Vitest unit/component tests                                                                |
+| `pnpm test:rls`     | RLS, allow-list and backlog-ordering tests against local Supabase (needs `pnpm db:start`)  |
+| `pnpm test:e2e`     | Playwright: sign in, search and add, reorder, TV progress, offline (needs `pnpm db:start`) |
+
+**End-to-end tests.** First time only: `pnpm exec playwright install chromium`. The tests start their own dev server on port 5174 against local Supabase (whatever `.env.local` says), sign in once as `e2e-user@example.com` (added to the local allow-list automatically), and read the code from Mailpit. The edge functions are stubbed, so no API keys are needed. Each test wipes that user's library first; your own local data isn't touched.
+
+Under WSL with mirrored networking, Playwright's check for an already-running server waits about two minutes, because a closed port times out instead of refusing. To skip the wait, start the server yourself in another terminal first; the tests then reuse it:
+
+```sh
+VITE_SUPABASE_URL=http://127.0.0.1:54321 VITE_SUPABASE_ANON_KEY=<ANON_KEY> \
+  pnpm exec vite --host 127.0.0.1 --port 5174 --strictPort
+```
 
 ## Hosted environments (manual)
 
@@ -36,7 +46,9 @@ pnpm dev                      # http://localhost:5173
 gh repo create backlog --private --source . --push
 ```
 
-CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on PRs.
+CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on PRs: checks and unit tests, RLS tests, and the end-to-end tests, each job against its own local Supabase.
+
+**Keep-alive** (`.github/workflows/keepalive.yml`) calls the `keepalive()` database function on Mondays and Thursdays so the free-tier project isn't paused. It uses the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` repository variables from [step 7](#7-android-phase-3) and needs the keepalive migration pushed. GitHub turns off scheduled workflows after 60 days with no commits; if that happens, re-enable it under Actions. Run it once by hand (Actions → _Keep-alive_ → _Run workflow_) to check it.
 
 ### 2. Supabase production project
 
@@ -217,3 +229,16 @@ Redeploy the edge functions (`pnpm functions:deploy`); no migration and no new s
 6. Open a show that's still airing (e.g. Nocturne), set it to Watching, and use **Set position** to go to the latest aired episode. **Next episode** goes away and it says when the next one airs (e.g. "S1 E4 airs Nov 12, 2026"), or "hasn't aired yet" if TMDB has no date. No Completed prompt appears.
 7. After that episode airs, open the show again: it's "Up next", with no toast.
 8. Repeat 2 to 4 in the Android app.
+
+### Phase 7 exit check
+
+One migration (`keepalive`): run `pnpm exec supabase db push` before deploying. No new secrets. Deploy `main`, then tag `v0.7.0` for the APK (it adds the Filesystem and Share plugins, so the APK must be rebuilt for export to work there).
+
+1. Run the _Keep-alive_ workflow by hand; it prints `1`.
+2. On the deployed site, open the library, then go offline (DevTools → Network → Offline, or airplane mode) and reload. The app opens, shows "Offline, read-only", and your library is there. Open an entry: every field and button is disabled. Search says it needs a connection. Go back online: the banner goes away and editing works.
+3. In Chrome, install the site (address bar → _Install_). It opens in its own window with the Backlog icon.
+4. After the next deploy, an open tab shows "A new version of Backlog is ready" with **Reload**.
+5. Settings shows your email, the version (e.g. `v0.6.0-12-gabc1234` on the web) and the TMDB notice. **Export as JSON** downloads `backlog-export-<date>.json` with your entries and media.
+6. On your phone: open the app with a connection, then turn on airplane mode, close the app fully and reopen it. The library opens read-only. (Leave it more than an hour first to check the expired-token case.)
+7. Still on the phone, back online: **Export as JSON** opens the share sheet; save it to Files or Drive. Settings shows `v0.7.0`.
+8. **Sign out** on the phone, then sign back in. The web stays signed in (sign-out is per device now).

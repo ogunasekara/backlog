@@ -1,4 +1,5 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { onlineManager } from '@tanstack/react-query'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DuplicateEntryError } from '@/lib/api/entries'
@@ -77,6 +78,19 @@ describe('SearchPage', () => {
     expect(await screen.findByText('Inception')).toBeInTheDocument()
     expect(screen.getByText('The Hobbit')).toBeInTheDocument()
     expect(screen.getByText('2010')).toBeInTheDocument()
+  })
+
+  it('turns off searching and adding while offline', async () => {
+    vi.mocked(searchApi.searchMedia).mockResolvedValue({ results: [inception] })
+    await searchFor('inception')
+    await screen.findByText('Inception')
+
+    act(() => onlineManager.setOnline(false))
+
+    expect(screen.getByText('Searching and adding need a connection.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Search' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Custom item' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
   })
 
   it('scopes the search to the chosen type', async () => {

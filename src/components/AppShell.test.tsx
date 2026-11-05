@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react'
+import { onlineManager } from '@tanstack/react-query'
+import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { AppShell } from './AppShell'
 
@@ -33,5 +34,16 @@ describe('AppShell', () => {
     for (const link of screen.getAllByRole('link', { name: 'Search' })) {
       expect(link).toHaveAttribute('aria-current', 'page')
     }
+  })
+
+  it('says when the app is offline and read-only', () => {
+    renderAt('/library')
+    expect(screen.queryByText(/Offline, read-only/)).not.toBeInTheDocument()
+
+    act(() => onlineManager.setOnline(false))
+    expect(screen.getByRole('status')).toHaveTextContent(/Offline, read-only/)
+
+    act(() => onlineManager.setOnline(true))
+    expect(screen.queryByText(/Offline, read-only/)).not.toBeInTheDocument()
   })
 })

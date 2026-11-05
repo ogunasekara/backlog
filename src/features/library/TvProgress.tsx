@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { statusLabel } from '@/lib/labels'
+import { useOnline } from '@/lib/online'
 import { localToday, type EntryPatch } from '@/lib/status'
 import {
   clampPointer,
@@ -211,12 +212,14 @@ function useRefreshOnOpen(entry: EntryWithMedia) {
     () => entry.status === 'in_progress' && entry.media.source !== 'custom',
   )
   const done = useRef(false)
+  // Offline, it waits: opening a show and then reconnecting still refreshes it.
+  const online = useOnline()
 
   useEffect(() => {
-    if (!shouldRefresh || done.current) return
+    if (!shouldRefresh || !online || done.current) return
     done.current = true
     refresh.mutate(entry)
-  }, [shouldRefresh, refresh, entry])
+  }, [shouldRefresh, online, refresh, entry])
 }
 
 function SetPositionForm({

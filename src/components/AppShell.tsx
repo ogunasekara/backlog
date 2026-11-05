@@ -1,5 +1,6 @@
-import { Library, Search, Settings, type LucideIcon } from 'lucide-react'
+import { Library, Search, Settings, WifiOff, type LucideIcon } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router'
+import { useOnline } from '@/lib/online'
 import { cn } from '@/lib/utils'
 
 type NavItem = { to: string; label: string; icon: LucideIcon }
@@ -12,6 +13,8 @@ const NAV_ITEMS: NavItem[] = [
 
 /** Sidebar on desktop (md+), bottom tab bar on mobile. */
 export function AppShell() {
+  const online = useOnline()
+
   return (
     <div className="flex min-h-dvh">
       <aside className="hidden w-56 shrink-0 flex-col border-r bg-sidebar p-3 text-sidebar-foreground md:flex">
@@ -38,6 +41,15 @@ export function AppShell() {
       {/* min-w-0 lets main shrink below its content's width; without it, one long
           unwrapped title (e.g. a truncated library row) widens the whole page. */}
       <main className="min-w-0 flex-1 p-4 pb-24 md:p-8 md:pb-8">
+        {!online && (
+          <p
+            role="status"
+            className="mb-4 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"
+          >
+            <WifiOff className="size-4 shrink-0" aria-hidden />
+            Offline, read-only. You're seeing your library as it was last loaded.
+          </p>
+        )}
         <Outlet />
       </main>
 

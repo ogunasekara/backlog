@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { addEntry, createCustomMedia, DuplicateEntryError } from '@/lib/api/entries'
 import { entriesKey } from '@/lib/api/keys'
 import { MEDIA_TYPE_LABELS, statusLabel } from '@/lib/labels'
+import { useOnline } from '@/lib/online'
 import { ENTRY_STATUSES, MEDIA_TYPES, type EntryStatus, type MediaType } from '@/lib/types'
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void }
@@ -37,6 +38,7 @@ export function CustomItemDialog({ open, onOpenChange }: Props) {
   const [coverUrl, setCoverUrl] = useState('')
   const [status, setStatus] = useState<EntryStatus>('backlog')
   const queryClient = useQueryClient()
+  const online = useOnline()
 
   function reset() {
     setType('movie')
@@ -179,7 +181,7 @@ export function CustomItemDialog({ open, onOpenChange }: Props) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={create.isPending || !title.trim()}>
+            <Button type="submit" disabled={!online || create.isPending || !title.trim()}>
               {create.isPending ? 'Creating…' : 'Create'}
             </Button>
           </DialogFooter>

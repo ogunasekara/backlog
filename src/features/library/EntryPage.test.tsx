@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { onlineManager } from '@tanstack/react-query'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as entriesApi from '@/lib/api/entries'
@@ -292,5 +293,35 @@ describe('EntryPage', () => {
 
     await user.click(screen.getByRole('link', { name: 'Library' }))
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/library$/)
+  })
+})
+
+describe('offline', () => {
+  it('shows the entry but disables every change', async () => {
+    open(hobbit)
+    await screen.findByRole('heading', { name: 'The Hobbit' })
+
+    act(() => onlineManager.setOnline(false))
+
+    expect(screen.getByLabelText('Status')).toBeDisabled()
+    for (const star of screen.getAllByRole('radio')) expect(star).toBeDisabled()
+    expect(screen.getByLabelText('Started')).toBeDisabled()
+    expect(screen.getByLabelText('Notes')).toBeDisabled()
+    expect(screen.getByLabelText(/^Page/)).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Refresh metadata' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
+
+    act(() => onlineManager.setOnline(true))
+    expect(screen.getByLabelText('Notes')).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeEnabled()
+  })
+
+  it('disables moving within the backlog', async () => {
+    open(inception)
+    await screen.findByText(/in your backlog/)
+
+    act(() => onlineManager.setOnline(false))
+
+    expect(screen.getByRole('button', { name: 'Move to bottom' })).toBeDisabled()
   })
 })

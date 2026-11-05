@@ -437,3 +437,11 @@ describe('media', () => {
     expect(check.data?.title).toBe('A Custom Game')
   })
 })
+
+describe('keepalive', () => {
+  it('anyone can call it, signed in or not', async () => {
+    const { data, error } = await anon.rpc('keepalive')
+    expect(error).toBeNull()
+    expect(data).toBe(1)
+  })
+})

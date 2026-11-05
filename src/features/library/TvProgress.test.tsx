@@ -1,11 +1,13 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { onlineManager } from '@tanstack/react-query'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as entriesApi from '@/lib/api/entries'
 import * as searchApi from '@/lib/api/search'
 import type { Entry, EntryWithMedia, Media } from '@/lib/types'
 import { makeEntry } from '@/test/fixtures'
-import { renderWithProviders } from '@/test/render'
+import { entriesKey } from '@/lib/api/keys'
+import { renderWithProviders, testQueryClient } from '@/test/render'
 import { EntryPage } from './EntryPage'
 
 vi.mock('@/lib/api/entries', () => ({
@@ -185,6 +187,27 @@ describe('TV progress', () => {
     open(show({ status: 'backlog', backlog_position: 'a0' }, [3, 2]))
     await screen.findByText('Not started')
     expect(searchApi.fetchMediaDetails).not.toHaveBeenCalled()
+  })
+
+  it('opened offline from the cache, it waits for a connection to refresh or step', async () => {
+    rows = [show({ status: 'in_progress' }, [3, 2])]
+    const queryClient = testQueryClient()
+    queryClient.setQueryData(entriesKey, rows)
+    onlineManager.setOnline(false)
+
+    renderWithProviders(<EntryPage />, {
+      route: '/library/show',
+      path: '/library/:entryId',
+      queryClient,
+    })
+
+    expect(await screen.findByRole('button', { name: 'Next episode' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Set position' })).toBeDisabled()
+    expect(searchApi.fetchMediaDetails).not.toHaveBeenCalled()
+
+    act(() => onlineManager.setOnline(true))
+    await waitFor(() => expect(searchApi.fetchMediaDetails).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: 'Next episode' })).toBeEnabled()
   })
 
   it('clamps a pointer that a smaller episode count left out of range', async () => {
