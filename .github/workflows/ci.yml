@@ -34,6 +34,10 @@ jobs:
     name: RLS tests (local Supabase)
     runs-on: ubuntu-latest
     steps:
+      # Supabase's ports sit in Linux's ephemeral range, so an outbound connection (the
+      # image pulls make many) can take one just before Docker binds it.
+      - name: Reserve the Supabase ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -49,6 +53,9 @@ jobs:
     name: End-to-end tests (Playwright, local Supabase)
     runs-on: ubuntu-latest
     steps:
+      # See the rls job.
+      - name: Reserve the Supabase ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
