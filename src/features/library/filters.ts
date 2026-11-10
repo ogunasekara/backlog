@@ -7,13 +7,13 @@ import {
   type MediaType,
 } from '@/lib/types'
 
-export type LibrarySort = 'position' | 'added' | 'title' | 'rating'
+export type LibrarySort = 'position' | 'added' | 'updated' | 'title' | 'rating'
 
 /** Backlog order only means something, and is the default, when showing the backlog. */
 export function sortsFor(status: EntryStatus | null): LibrarySort[] {
   return status === 'backlog'
-    ? ['position', 'added', 'title', 'rating']
-    : ['added', 'title', 'rating']
+    ? ['position', 'added', 'updated', 'title', 'rating']
+    : ['added', 'updated', 'title', 'rating']
 }
 
 export function defaultSort(status: EntryStatus | null): LibrarySort {
@@ -23,6 +23,7 @@ export function defaultSort(status: EntryStatus | null): LibrarySort {
 export const SORT_LABELS: Record<LibrarySort, string> = {
   position: 'Backlog order',
   added: 'Date added',
+  updated: 'Last updated',
   title: 'Title',
   rating: 'Rating',
 }
@@ -59,6 +60,7 @@ const byAddedDesc = (a: EntryWithMedia, b: EntryWithMedia) =>
 const COMPARATORS: Record<LibrarySort, (a: EntryWithMedia, b: EntryWithMedia) => number> = {
   position: compareBacklog,
   added: byAddedDesc,
+  updated: (a, b) => b.updated_at.localeCompare(a.updated_at) || byAddedDesc(a, b),
   title: (a, b) => byTitle(a, b) || byAddedDesc(a, b),
   // Highest first; unrated entries go last, then alphabetical among equals.
   rating: (a, b) => (b.rating ?? 0) - (a.rating ?? 0) || byTitle(a, b),

@@ -9,6 +9,13 @@ describe('parseLibraryView', () => {
     ).toEqual({ type: 'book', status: 'in_progress', sort: 'title' })
   })
 
+  it('accepts last updated with or without a status filter', () => {
+    expect(parseLibraryView(new URLSearchParams('sort=updated')).sort).toBe('updated')
+    expect(parseLibraryView(new URLSearchParams('status=backlog&sort=updated')).sort).toBe(
+      'updated',
+    )
+  })
+
   it('falls back to everything, newest first, for missing or unknown values', () => {
     expect(parseLibraryView(new URLSearchParams('type=podcast&status=x&sort=y'))).toEqual({
       type: null,
@@ -68,6 +75,30 @@ describe('applyLibraryView', () => {
       'Zelda',
       'Dune',
     ])
+  })
+
+  it('sorts by last updated, most recent first, ties by newest added', () => {
+    const edited = makeEntry(
+      { created_at: '2026-10-01T00:00:00Z', updated_at: '2026-11-05T00:00:00Z' },
+      { title: 'Edited' },
+    )
+    const olderTie = makeEntry(
+      { created_at: '2026-10-02T00:00:00Z', updated_at: '2026-11-01T00:00:00Z' },
+      { title: 'Older tie' },
+    )
+    const newerTie = makeEntry(
+      { created_at: '2026-10-03T00:00:00Z', updated_at: '2026-11-01T00:00:00Z' },
+      { title: 'Newer tie' },
+    )
+    expect(
+      titles(
+        applyLibraryView([olderTie, newerTie, edited], {
+          type: null,
+          status: null,
+          sort: 'updated',
+        }),
+      ),
+    ).toEqual(['Edited', 'Newer tie', 'Older tie'])
   })
 
   it('sorts by title ignoring case', () => {

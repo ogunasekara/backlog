@@ -117,6 +117,23 @@ describe('LibraryPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('status=completed')
   })
 
+  it('sorts by last updated when chosen, and keeps it in the URL', async () => {
+    vi.mocked(entriesApi.listEntries).mockResolvedValue([
+      inception,
+      hobbit,
+      { ...alien, updated_at: '2026-11-01T00:00:00Z' },
+    ])
+    const user = userEvent.setup()
+    renderWithProviders(<LibraryPage />, { route: '/library' })
+    await screen.findByText('Inception')
+
+    await user.click(screen.getByLabelText('Sort by'))
+    await user.click(await screen.findByRole('option', { name: 'Last updated' }))
+
+    expect(rowTitles()[0]).toBe('Alien')
+    expect(screen.getByTestId('location')).toHaveTextContent('sort=updated')
+  })
+
   it('labels in-progress by type within a type tab', async () => {
     const user = userEvent.setup()
     renderWithProviders(<LibraryPage />, { route: '/library?type=game' })

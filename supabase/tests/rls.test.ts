@@ -346,6 +346,82 @@ describe('set_backlog_positions', () => {
   })
 })
 
+describe('entries.updated_at', () => {
+  let media: string[]
+  let entries: string[]
+
+  beforeAll(async () => {
+    const inserted = await admin
+      .from('media')
+      .insert(
+        ['One', 'Two'].map((title, i) => ({
+          type: 'movie' as const,
+          source: 'tmdb' as const,
+          external_id: `touched-${run}-${i}`,
+          title,
+        })),
+      )
+      .select('id')
+    if (inserted.error) throw inserted.error
+    media = inserted.data.map((row) => row.id)
+
+    const created = await userA.client
+      .from('entries')
+      .insert([
+        { media_id: media[0], status: 'backlog', backlog_position: 'c0' },
+        { media_id: media[1], status: 'backlog', backlog_position: 'c1' },
+      ])
+      .select('id')
+    if (created.error) throw created.error
+    entries = created.data.map((row) => row.id)
+  })
+
+  afterAll(async () => {
+    await admin.from('media').delete().in('id', media)
+  })
+
+  async function updatedAt(id: string) {
+    const { data, error } = await admin.from('entries').select('updated_at').eq('id', id).single()
+    if (error) throw error
+    return data.updated_at
+  }
+
+  async function update(id: string, patch: Record<string, unknown>) {
+    const { error } = await userA.client.from('entries').update(patch).eq('id', id)
+    expect(error).toBeNull()
+  }
+
+  it('stays put when only the backlog position changes', async () => {
+    const before = await updatedAt(entries[0]!)
+    await update(entries[0]!, { backlog_position: 'c05' })
+    expect(await updatedAt(entries[0]!)).toBe(before)
+  })
+
+  it('stays put through a multi-entry reorder', async () => {
+    const before = await Promise.all(entries.map((id) => updatedAt(id)))
+    const { error } = await userA.client.rpc('set_backlog_positions', {
+      positions: [
+        { id: entries[0], position: 'c1' },
+        { id: entries[1], position: 'c0' },
+      ],
+    })
+    expect(error).toBeNull()
+    expect(await Promise.all(entries.map((id) => updatedAt(id)))).toEqual(before)
+  })
+
+  it('moves when the entry itself changes', async () => {
+    const before = await updatedAt(entries[0]!)
+    await update(entries[0]!, { notes: 'Worth a rewatch' })
+    expect(await updatedAt(entries[0]!)).not.toBe(before)
+  })
+
+  it('moves when a status change also clears the position', async () => {
+    const before = await updatedAt(entries[1]!)
+    await update(entries[1]!, { status: 'completed', backlog_position: null })
+    expect(await updatedAt(entries[1]!)).not.toBe(before)
+  })
+})
+
 describe('catalog upsert (service role)', () => {
   it('updates the existing row instead of duplicating it', async () => {
     const row = {
