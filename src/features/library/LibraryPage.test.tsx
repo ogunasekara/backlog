@@ -117,7 +117,7 @@ describe('LibraryPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('status=completed')
   })
 
-  it('sorts by last updated when chosen, and keeps it in the URL', async () => {
+  it('sorts by last updated by default, and keeps another choice in the URL', async () => {
     vi.mocked(entriesApi.listEntries).mockResolvedValue([
       inception,
       hobbit,
@@ -126,12 +126,13 @@ describe('LibraryPage', () => {
     const user = userEvent.setup()
     renderWithProviders(<LibraryPage />, { route: '/library' })
     await screen.findByText('Inception')
+    expect(rowTitles()[0]).toBe('Alien')
 
     await user.click(screen.getByLabelText('Sort by'))
-    await user.click(await screen.findByRole('option', { name: 'Last updated' }))
+    await user.click(await screen.findByRole('option', { name: 'Title' }))
 
     expect(rowTitles()[0]).toBe('Alien')
-    expect(screen.getByTestId('location')).toHaveTextContent('sort=updated')
+    expect(screen.getByTestId('location')).toHaveTextContent('sort=title')
   })
 
   it('labels in-progress by type within a type tab', async () => {

@@ -9,11 +9,11 @@ import {
 
 export type LibrarySort = 'position' | 'added' | 'updated' | 'title' | 'rating'
 
-/** Backlog order only means something, and is the default, when showing the backlog. */
+/** Backlog order only means something, and is the default, when showing the backlog. Elsewhere the default is last updated. */
 export function sortsFor(status: EntryStatus | null): LibrarySort[] {
   return status === 'backlog'
     ? ['position', 'added', 'updated', 'title', 'rating']
-    : ['added', 'updated', 'title', 'rating']
+    : ['updated', 'added', 'title', 'rating']
 }
 
 export function defaultSort(status: EntryStatus | null): LibrarySort {

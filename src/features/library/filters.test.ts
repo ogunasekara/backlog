@@ -20,7 +20,7 @@ describe('parseLibraryView', () => {
     expect(parseLibraryView(new URLSearchParams('type=podcast&status=x&sort=y'))).toEqual({
       type: null,
       status: null,
-      sort: 'added',
+      sort: 'updated',
     })
   })
 })
@@ -30,9 +30,9 @@ describe('backlog order', () => {
     expect(parseLibraryView(new URLSearchParams('status=backlog')).sort).toBe('position')
     expect(parseLibraryView(new URLSearchParams('status=backlog&sort=title')).sort).toBe('title')
     expect(parseLibraryView(new URLSearchParams('status=completed&sort=position')).sort).toBe(
-      'added',
+      'updated',
     )
-    expect(parseLibraryView(new URLSearchParams('sort=position')).sort).toBe('added')
+    expect(parseLibraryView(new URLSearchParams('sort=position')).sort).toBe('updated')
   })
 
   it('sorts by backlog position', () => {
