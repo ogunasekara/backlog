@@ -20,7 +20,7 @@ pnpm dev                     # always port 5173 (strictPort; auth redirects depe
 pnpm functions:serve         # optional second terminal; needs supabase/functions/.env
 ```
 
-CI runs `lint`, `format:check`, `typecheck`, `test`, `build`, `test:rls` and `test:e2e`.
+CI runs `lint`, `format:check`, `typecheck`, `test`, `build`, `test:rls` and `test:e2e`. Pull requests skip `test:e2e`, which runs only on pushes to `main`.
 
 ```sh
 pnpm lint

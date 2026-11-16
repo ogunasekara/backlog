@@ -51,6 +51,8 @@ jobs:
 
   e2e:
     name: End-to-end tests (Playwright, local Supabase)
+    # Slow, so it runs on pushes to main only; run `pnpm test:e2e` locally before merging.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       # See the rls job.
