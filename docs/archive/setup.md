@@ -1,5 +1,7 @@
 # Setup
 
+> **Archived.** This is a historical record from building v1 and is no longer kept up to date. The [archive index](README.md) says where its content lives now.
+
 How to run Backlog locally and how to stand up the hosted environments. Steps marked **(manual)** need your accounts and can't be scripted from the repo.
 
 ## Local development

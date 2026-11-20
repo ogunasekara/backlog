@@ -36,7 +36,7 @@ export default defineConfig({
     url: origin,
     // Playwright first checks whether the server is already up. Under WSL's mirrored
     // networking a closed port times out instead of refusing, so that check takes about
-    // two minutes; start the server yourself to skip it (see docs/setup.md).
+    // two minutes; start the server yourself to skip it (see docs/development.md).
     reuseExistingServer: !process.env.CI,
     env: {
       VITE_SUPABASE_URL: supabase.url,

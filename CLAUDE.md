@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Backlog is a personal tracker for movies, TV, books and games, restricted to an email allow-list. One React codebase ships as a PWA (Cloudflare Worker with static assets, although older docs say "Pages") and as a sideloaded Android APK (Capacitor). The backend is Supabase: Postgres with RLS, plus two edge functions.
 
-v1 is complete. `docs/implementation-plan.md` holds the data model, core rules and what is out of scope. `docs/PROGRESS.md` records per-phase decisions and the bugs behind non-obvious code, so check it before changing behaviour that looks odd, and update it as work lands. `docs/setup.md` covers hosted setup and manual exit checks.
+v1 is complete. `docs/architecture.md` holds the scope, data model and core rules; update it when they change. `docs/decisions.md` records why the code is the way it is and the bugs behind non-obvious code, grouped by area, so check it before changing behaviour that looks odd and add to it when you make a choice like those. `docs/development.md` covers local setup, tests and the manual test list; `docs/self-hosting.md` covers hosted setup. `docs/archive/` is the v1 plan and build log, kept as history and no longer updated.
 
 ## Commands
 
@@ -39,7 +39,7 @@ pnpm exec playwright test -g "name"
 
 Sign-in emails go to Mailpit locally (http://127.0.0.1:54324). Add your own allow-listed email through `supabase/seed.local.sql` (gitignored, see the `.example`), then `pnpm db:reset`.
 
-Under WSL with mirrored networking, Playwright's server check stalls for about two minutes. Starting the server first avoids it; the command is in `docs/setup.md`.
+Under WSL with mirrored networking, Playwright's server check stalls for about two minutes. Starting the server first avoids it; the command is in `docs/development.md`.
 
 ## Architecture
 

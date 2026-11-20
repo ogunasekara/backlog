@@ -72,7 +72,7 @@ jobs:
             echo "::error::Missing repository secrets (Actions → Secrets tab): ${missing_secrets[*]}"
           fi
           if (( ${#missing_vars[@]} + ${#missing_secrets[@]} )); then
-            echo "Environment, Codespaces, and Dependabot values are not visible here (see docs/setup.md)."
+            echo "Environment, Codespaces, and Dependabot values are not visible here (see docs/self-hosting.md)."
             exit 1
           fi
 
