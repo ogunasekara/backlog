@@ -1,5 +1,7 @@
 # Progress
 
+> **Archived.** This is a historical record from building v1 and is no longer kept up to date. The [archive index](README.md) says where its content lives now.
+
 Tracks build status against [implementation-plan.md](implementation-plan.md). Update this file as work lands.
 
 **v1 is complete:** every box in the plan's v1 checklist is ticked (2026-11-05).

@@ -1,5 +1,7 @@
 # Backlog: Implementation Plan
 
+> **Archived.** This is a historical record from building v1 and is no longer kept up to date. The [archive index](README.md) says where its content lives now.
+
 _App name: **Backlog** (repo and package slug: `backlog`). A personal tracker for movies, TV shows, books, and games, as a web app (PWA) and a sideloaded Android app._
 
 ---
